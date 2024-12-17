@@ -1,7 +1,7 @@
-# twitch-plays (Revenge of the Flying Dutchman)
+# twitch-plays (BfBB Randomizer)
 Made for [shift](https://www.twitch.tv/shift)
 
 # Instructions:
-Fill out tokens.json and settings.json
+Fill out login.json and settings.json
 `npm install`
 `npm start`

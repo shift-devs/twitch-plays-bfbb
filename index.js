@@ -125,7 +125,7 @@ function doTick(){
     let needsUpdate = false;
     for (let key in tickableInputs) {
         let value = tickableInputs[key];
-        if (value != 0){
+        if (value != 0 && value != -1){
             value -= CTICK_INTERVAL;
             value = Math.max(0, value);
             value = Math.min(CTICK_MAX, value);
@@ -329,7 +329,7 @@ async function main(){
         let mSplit = message.toUpperCase().split(" ");
 
         let badPermsMsg=()=>{
-            tpSay(client `@${tags.username} You don't have permission to do that!`);
+            tpSay(client,`@${tags.username} You don't have permission to do that!`);
         }
 
         let modeMsg=(modeValue)=>{
@@ -664,6 +664,18 @@ async function main(){
             time = actionsModifiers[mSplit[0]];
             dir1 = mSplit[2] in DIRECTIONS ? mSplit[2] : null;
             dir2 = mSplit[3] in DIRECTIONS ? mSplit[3] : null;
+            if (KEYS.includes(mSplit[1])) {
+                if (mSplit[0] == "DOUBLE"){
+                    tickableInputs[mSplit[1]] += 250;
+                    await sleep(250);
+                    tickableInputs[mSplit[1]] = 0;
+                    await sleep(50);
+                    tickableInputs[mSplit[1]] += 250;
+                    return;
+                }
+                press(mSplit[1]);
+                return;
+            }
             if (mSplit[1] in DIRECTIONS) {
                 move(mSplit[1], mSplit[2],time);
                 return;
@@ -672,8 +684,20 @@ async function main(){
                 case "TURN":
                 case "LOOK":
                     if (mSplit[2] in DIRECTIONS) {
-                        if (mSplit[0] == "LIGHT") look(mSplit[2], 200);
-                        else if (mSplit[0] == "MICRO") look(mSplit[2], 100);
+                        switch (mSplit[0]){
+                            case "LIGHT":
+                                look(mSplit[2], 200);
+                                return;
+                            case "GIGA":
+                                look(mSplit[2], 1000);
+                                return;
+                            case "MICRO":
+                                look(mSplit[2], 100);
+                                return;
+                            case "DOUBLE":
+                                look(mSplit[2], 800);
+                                return;
+                        }
                     }
                     return;
                 case "SHIT":
