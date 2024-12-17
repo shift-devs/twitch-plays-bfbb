@@ -1,0 +1,52 @@
+# -- insert below at 801da664 --
+li r7, 0
+lwz r6, 0x01a0(r5)
+or r7, r0, r6
+andi. r8, r0, 0xFFFF
+cmpli 0, 0, r8, 0x8080
+beq noforcemove
+forcemove:
+andi. r8, r0, 0xFFFF
+b postforcemove
+noforcemove:
+andi. r8, r6, 0xFFFF
+postforcemove:
+andis. r7, r7, 0xFFFF
+or r7, r7, r8
+mr r0, r7
+stw r0, 0x01c0(r5)
+
+# -- insert below at 801da678 --
+secondhalf:
+lwz r6, 0x01a4(r5)
+lis r7, 0x8080
+ori r7, r7, 0x0000
+cmpl 0, 0, r7, r4
+bne post
+mr r4, r6
+post:
+stw r4, 0x01c4(r5)
+
+# -- execute below --
+lis r7, 0x8037
+ori r7, r7, 0xECC8
+lwz r8, 0(r7)
+lis r9, 0x4161
+ori r9, r9, 0x726F
+cmpl 0, 0, r8, r9
+beq nochange
+addi r7, r7, -8
+lis r8, 0x0080
+ori r8, r8, 0x8080
+stw r8, 0(r7)
+addi r7, r7, 4
+lis r8, 0x8080
+ori r8, r8, 0x0000
+stw r8, 0(r7)
+addi r7, r7, 4
+lis r8, 0x4161
+ori r8, r8, 0x726F
+stw r8, 0(r7)
+nochange:
+nop
+blr

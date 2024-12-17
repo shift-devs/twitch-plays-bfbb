@@ -1,0 +1,17 @@
+{
+  "name": "twitch-plays",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Made for [shift](https://www.twitch.tv/shift)",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "tmi.js": "^1.8.5",
+    "@jitsi/robotjs": "^0.6.13"
+  }
+}

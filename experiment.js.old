@@ -1,0 +1,212 @@
+import { promises } from "fs";
+import * as tmi from "tmi.js";
+import * as chi from "child_process";
+import { default as robot } from "@jitsi/robotjs";
+import { createRequire } from "node:module";
+const nativeModule = createRequire(import.meta.url)("./nodephin.node"); // custom bs
+let setInputs = nativeModule.setInputs;
+
+const ACTIVEDEVS = ["aaronrules5", "darkrta", "the_ivo_robotnic"]
+
+const settingsObj = JSON.parse(await promises.readFile("./settings.json", "UTF-8"));
+const CHANNELNAME = settingsObj["channel-name"];
+
+const loginObj = JSON.parse(await promises.readFile("./login.json", "UTF-8"));
+const BOTNAME = loginObj["bot-name"];
+const TOKEN = loginObj["access-token"];
+const ANON = (!BOTNAME || !TOKEN);
+
+const DIRECTIONS = {
+	FORWARD: "UP",
+	UP: "UP",
+	BACK: "DOWN",
+	DOWN: "DOWN",
+	LEFT: "LEFT",
+	RIGHT: "RIGHT",
+};
+
+let permStr = await promises.readFile("./perm.json", "UTF-8")
+let permObj = {};
+
+try {
+    permObj = JSON.parse(permStr);
+}
+catch {
+    console.warn("Unable to parse perm.json! Resetting to defaults!");
+    permObj = {};
+    permObj["ops"] = {};
+    permObj["blocks"] = {};
+}
+
+let prevInputStates = {}
+
+let tickableInputs = {
+    A: 0,
+    B: 0,
+    X: 0,
+    Y: 0,
+    START: 0,
+    L: 0,
+    R: 0,
+    Z: 0,
+    UP: 0,
+    DOWN: 0,
+    LEFT: 0,
+    RIGHT: 0,
+    CUP: 0,
+    CLEFT: 0,
+    CDOWN: 0,
+    CRIGHT: 0,
+}
+let sneaking = false;
+
+// very low o.o
+const TICK_INTERVAL = 10;
+const TICK_MAX = 6000;
+
+function clearTicks(){
+    for (let key in tickableInputs) {
+        tickableInputs[key] = 0;
+    }
+}
+
+function doTickInterval(){
+    let needsUpdate = false;
+    for (let key in tickableInputs) {
+        let value = tickableInputs[key];
+        if (value != 0){
+            value -= TICK_INTERVAL;
+            value = Math.max(0, value);
+            value = Math.min(TICK_MAX, value);
+            tickableInputs[key] = value;
+        }
+        if (prevInputStates[key] != (value ? 1 : 0)){
+            needsUpdate = true;
+        }
+        prevInputStates[key] = tickableInputs[key] ? 1 : 0;
+    }
+    if (needsUpdate)
+        finalSetInputs()
+}
+
+function finalSetInputs(){
+    setInputs(0x37ECC0,Buffer.from([
+        (tickableInputs["A"] ? 0x01 : 0x00) | (tickableInputs["B"] ? 0x02 : 0x00) | (tickableInputs["X"] ? 0x04 : 0x00) | (tickableInputs["Y"] ? 0x08 : 0x00) | (tickableInputs["START"] ? 0x10 : 0x00),
+        (tickableInputs["Z"] ? 0x10 : 0x00) | (tickableInputs["R"] ? 0x20 : 0x00) | (tickableInputs["L"] ? 0x40 : 0x00) | 0x80,
+        tickableInputs["LEFT"] ? (sneaking ? 0x5A : 0x00) : (tickableInputs["RIGHT"] ? (sneaking ? 0xFF - 0x5A : 0xFF) : 0x80),
+        tickableInputs["DOWN"] ? (sneaking ? 0x5A : 0x00) : (tickableInputs["UP"] ? (sneaking ? 0xFF - 0x5A : 0xFF) : 0x80),
+        tickableInputs["CLEFT"] ? 0x00 : (tickableInputs["CRIGHT"] ? 0xFF : 0x80),
+        tickableInputs["CDOWN"] ? 0x00 : (tickableInputs["CUP"] ? 0xFF : 0x80),
+        0x00,
+        0x00
+    ]));
+}
+
+function antiSoftlock(){
+    setInputs(0x3C1C0B,Buffer.from([0x00,0x00]));
+}
+
+async function sleep(ms){
+    return new Promise((res)=>{
+        setTimeout(res,ms);
+    })
+}
+
+function ciEqual(str1,str2){
+    return str1.toUpperCase()==str2.toUpperCase();
+}
+
+function ciIncludes(arr,str){
+    let i = 0;
+    const arrLen = arr.length;
+    while (i < arrLen){
+        if (ciEqual(arr[i],str))
+            return true;
+        i++;
+    }
+    return false;
+}
+
+function tpSay(client, msg){
+    console.log(msg);
+    if (ANON || !client)
+        return;
+    client.say(CHANNELNAME,msg);
+}
+
+async function resetDolphin(){
+    // dont allow inputs
+    clearTicks();
+    chi.spawnSync("pkill",["-sigterm","dolphin-emu"]);
+    await sleep(1000);
+    chi.spawn("dolphin-emu",["-e",settingsObj["dol"]],{detached: true});
+    await sleep(1000);
+    // allow inputs
+    // ready
+}
+
+async function press(key) {
+	if (key)
+        tickableInputs[key] += 50;
+}
+
+async function hold(key, time = 1500) {
+	if (key in DIRECTIONS){
+        key = DIRECTIONS[key];
+        move(dir1, null, time);
+        return;
+    }
+    tickableInputs[key] += time;
+}
+
+async function move(dir1, dir2, time = 1000) {
+    let finalDir1 = DIRECTIONS[dir1];
+    let finalDir2 = DIRECTIONS[dir2];
+    if ((finalDir1 == "UP" && finalDir2 == "DOWN") || (finalDir1 == "DOWN" && finalDir2 == "UP") || (finalDir1 == "LEFT" && finalDir2 == "RIGHT") || (finalDir1 == "RIGHT" && finalDir2 == "LEFT"))
+        return;
+    tickableInputs[DIRECTIONS[dir1]] += time;
+    tickableInputs[DIRECTIONS[dir2]] += time;
+    if ((tickableInputs.UP > 0 && tickableInputs.DOWN > 0) || (tickableInputs.LEFT > 0 && tickableInputs.RIGHT > 0)){
+        tickableInputs.UP = 0;
+        tickableInputs.DOWN = 0;
+        tickableInputs.LEFT = 0;
+        tickableInputs.RIGHT = 0;
+        tickableInputs[DIRECTIONS[dir1]] += time;
+        tickableInputs[DIRECTIONS[dir2]] += time;
+    }
+}
+
+async function jump(dir1, dir2, time = 1000) {
+    if (dir1 || dir2){
+        move(dir1, dir2, time);
+    }
+    tickableInputs.A += 250;
+}
+
+async function doublejump(dir1, dir2, time = 1000) {
+    if (dir1 || dir2){
+        move(dir1, dir2, time);
+    }
+    tickableInputs.A += 250;
+    await sleep(250);
+    tickableInputs.A = 0;
+    await sleep(50);
+    tickableInputs.A += 250;
+}
+
+async function look(dir, time = 500) {
+	switch (dir) {
+		case "LEFT":
+			tickableInputs.CRIGHT += time;
+			return;
+		case "RIGHT":
+            tickableInputs.CLEFT += time;
+			return;
+        case "UP":
+            tickableInputs.CDOWN += time;
+            return;
+        case "DOWN":
+            tickableInputs.CUP += time;
+            return;
+	}
+}

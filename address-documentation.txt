@@ -1,0 +1,36 @@
+Gecko Code Word 1:
+801da664
+Gecko Code Word 2:
+801da678
+
+TP Data:
+8037ECC0
+
+0x8037ECE0
+0x10 Start
+0x08 Y
+0x04 X
+0x02 B
+0x01 A
+
+0x8037ECE1
+0x80 ??? enable sticks?
+0x40 L
+0x20 R
+0x10 Z
+0x08 Dpad U
+0x04 Dpad D
+0x02 DPad R
+0x01 Dpad L
+
+0x8037ECE2 Main Stick X
+
+0x8037ECE3 Main Stick Y
+
+0x8037ECE2 C Stick X
+
+0x8037ECE3 C Stick Y
+
+0x8037ECE4 Analog L Trigger
+
+0x8037ECE5 Analor R Trigger
