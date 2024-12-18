@@ -641,8 +641,8 @@ async function main(){
                 if (mSplit[1] in DIRECTIONS) look(mSplit[1]);
                 return;
             case "HOLD":
-                if (KEYS.includes(mSplit[1]) || mSplit[1] in DIRECTIONS)
-                    hold(mSplit[1]);
+                if (KEYS.includes(mSplit[1]) || mSplit[1] in DIRECTIONS){}
+                //    hold(mSplit[1]);
                 return;
             case "SHIT":
                 tpSay(client,"Trolling");
@@ -712,8 +712,8 @@ async function main(){
                     move(dir1, dir2, time);
                     return;
                 case "HOLD":
-                    if (KEYS.includes(mSplit[2]) || mSplit[2] in DIRECTIONS)
-                        hold(mSplit[2], time + 500);
+                    if (KEYS.includes(mSplit[2]) || mSplit[2] in DIRECTIONS){}
+                    //    hold(mSplit[2], time + 500);
                     return;
             }
         }
