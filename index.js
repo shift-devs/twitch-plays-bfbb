@@ -54,7 +54,7 @@ const KEYS = ["A","B","X","Y","Z","L","R"]
 
 const SIMPLEACTIONS = {
     "BASH": "Y",
-    "SLAM": "X",
+//    "SLAM": "X",
     "BOWL": "X",
     "ATTACK": "B"
 }
@@ -262,6 +262,16 @@ async function jump(dir1, dir2, time = 800) {
         move(dir1, dir2, time);
     }
     tickableInputs.A += 250;
+}
+
+async function slam(){
+    tickableInputs.A += 250;
+    await sleep(250);
+    tickableInputs.A = 0;
+    await sleep(50);
+    tickableInputs.A += 250;
+    await sleep(50);
+    tickableInputs.X += 50;
 }
 
 async function doublejump(dir1, dir2, time = 800) {
@@ -653,6 +663,9 @@ async function main(){
                 //return;
             case "SHIT":
                 tpSay(client,"Trolling");
+            case "SLAM":
+                slam();
+                return;
             case "JUMP":
                 if (mSplit[1] in DIRECTIONS)
                     jump(mSplit[1], mSplit[2] in DIRECTIONS ? mSplit[2] : null);
@@ -718,6 +731,9 @@ async function main(){
                         doublejump(dir1,dir2,time);
                     else
                         jump(dir1, dir2, time);
+                    return;
+                case "SLAM":
+                    slam();
                     return;
                 case "MOVE":
                     move(dir1, dir2, time);
