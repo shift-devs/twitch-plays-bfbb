@@ -176,7 +176,7 @@ function ciIncludes(arr,str){
 
 function tpSay(client, msg){
     console.log(msg);
-    if (ANON)
+    if (ANON || !client)
         return;
     let msgBuf = msg;
     while (msgBuf.length > 0) {
@@ -501,6 +501,11 @@ async function main(){
                     if (!devWall() || !checkModeBeforeSave())
                         return;
                     robot.keyTap("f8");
+                    return;
+                case "DUMPTICKABLE":
+                    if (!opWall())
+                        return;
+                    tpSay(client, `@${tags.username} ${JSON.stringify(tickableInputs)}`);
                     return;
                 case "MODE":
                     if (!modWall())
