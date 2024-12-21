@@ -65,7 +65,7 @@ const actionsModifiers = {
 	MICRO: 100,
 	LIGHT: 500,
 	DOUBLE: 1000,
-	GIGA: 5000,
+	GIGA: 5000
 };
 
 let permStr = await promises.readFile("./perm.json", "UTF-8")
@@ -230,7 +230,7 @@ async function press(key) {
         tickableInputs[key] += 50;
 }
 
-async function hold(key, time = 1500) {
+async function hold(key, time = 6000) {
 	if (key in DIRECTIONS){
         key = DIRECTIONS[key];
         move(key, null, time);
@@ -647,7 +647,7 @@ async function main(){
                 return;
             case "HOLD":
                 if (KEYS.includes(mSplit[1]) || mSplit[1] in DIRECTIONS){}
-                //    hold(mSplit[1]);
+                    hold(mSplit[1]);
                 return;
             case "SHIT":
                 tpSay(client,"Trolling");
