@@ -647,9 +647,10 @@ async function main(){
                 if (mSplit[1] in DIRECTIONS) look(mSplit[1]);
                 return;
             case "HOLD":
-                if (KEYS.includes(mSplit[1]) || mSplit[1] in DIRECTIONS){}
-                    // hold(mSplit[1]);
-                return;
+                break
+                if (KEYS.includes(mSplit[1]) || mSplit[1] in DIRECTIONS)
+                    hold(mSplit[1]);
+                //return;
             case "SHIT":
                 tpSay(client,"Trolling");
             case "JUMP":
@@ -687,7 +688,7 @@ async function main(){
                 return;
             }
             if (mSplit[1] in DIRECTIONS) {
-                move(mSplit[1], mSplit[2],time);
+                move(mSplit[1], mSplit[2], time);
                 return;
             }
             switch (mSplit[1]) {
@@ -722,9 +723,10 @@ async function main(){
                     move(dir1, dir2, time);
                     return;
                 case "HOLD":
+                    break
                     if (KEYS.includes(mSplit[2]) || mSplit[2] in DIRECTIONS){}
-                    //    hold(mSplit[2], time + 500);
-                    return;
+                        hold(mSplit[2]);
+                    //return;
             }
         }
     });
