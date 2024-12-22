@@ -264,13 +264,28 @@ async function jump(dir1, dir2, time = 800) {
     tickableInputs.A += 250;
 }
 
+async function glide(dir1, dir2){
+    if (dir1 || dir2){
+        move(dir1, dir2, 6000);
+    }
+    tickableInputs.A += 250;
+    await sleep(250);
+    tickableInputs.A = 0;
+    await sleep(50);
+    tickableInputs.A += 250;
+    await sleep(250);
+    tickableInputs.A = 0;
+    await sleep(50);
+    tickableInputs.A += 5400;
+}
+
 async function slam(){
     tickableInputs.A += 250;
     await sleep(250);
     tickableInputs.A = 0;
     await sleep(50);
     tickableInputs.A += 250;
-    await sleep(50);
+    await sleep(100);
     tickableInputs.X += 50;
 }
 
@@ -666,6 +681,9 @@ async function main(){
             case "SLAM":
                 slam();
                 return;
+            case "GLIDE":
+                glide(dir1, dir2);
+                return;
             case "JUMP":
                 if (mSplit[1] in DIRECTIONS)
                     jump(mSplit[1], mSplit[2] in DIRECTIONS ? mSplit[2] : null);
@@ -731,6 +749,9 @@ async function main(){
                         doublejump(dir1,dir2,time);
                     else
                         jump(dir1, dir2, time);
+                    return;
+                case "GLIDE":
+                    glide(dir1, dir2);
                     return;
                 case "SLAM":
                     slam();
