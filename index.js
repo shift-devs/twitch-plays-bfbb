@@ -273,7 +273,7 @@ async function glide(dir1, dir2, time = 2000){
     tickableInputs.A = 0;
     await sleep(50);
     tickableInputs.A += 250;
-    await sleep(250);
+    await sleep(300);
     tickableInputs.A = 0;
     await sleep(50);
     tickableInputs.A += time + 800;
