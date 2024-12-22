@@ -682,7 +682,8 @@ async function main(){
                 slam();
                 return;
             case "GLIDE":
-                glide(dir1, dir2);
+                if (mSplit[1] in DIRECTIONS)
+                    jump(mSplit[1], mSplit[2] in DIRECTIONS ? mSplit[2] : null);
                 return;
             case "JUMP":
                 if (mSplit[1] in DIRECTIONS)
