@@ -264,9 +264,9 @@ async function jump(dir1, dir2, time = 800) {
     tickableInputs.A += 250;
 }
 
-async function glide(dir1, dir2){
+async function glide(dir1, dir2, time = 2000){
     if (dir1 || dir2){
-        move(dir1, dir2, 6000);
+        move(dir1, dir2, time + 600);
     }
     tickableInputs.A += 250;
     await sleep(250);
@@ -276,7 +276,7 @@ async function glide(dir1, dir2){
     await sleep(250);
     tickableInputs.A = 0;
     await sleep(50);
-    tickableInputs.A += 5400;
+    tickableInputs.A += time + 500;
 }
 
 async function slam(){
@@ -752,7 +752,7 @@ async function main(){
                         jump(dir1, dir2, time);
                     return;
                 case "GLIDE":
-                    glide(dir1, dir2);
+                    glide(dir1, dir2, time);
                     return;
                 case "SLAM":
                     slam();
