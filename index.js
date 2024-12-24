@@ -65,7 +65,7 @@ const actionsModifiers = {
 	MICRO: 100,
     LITTLE: 500,
 	LIGHT: 500,
-	DOUBLE: 1000,
+	DOUBLE: 1500,
 	GIGA: 5000,
     HOLD: 6000
 };
@@ -297,7 +297,7 @@ async function slam(){
     tickableInputs.X += 50;
 }
 
-async function doublejump(dir1, dir2, time = 1000) {
+async function doublejump(dir1, dir2, time = 1500) {
     if (dir1 || dir2){
         move(dir1, dir2, time);
     }
