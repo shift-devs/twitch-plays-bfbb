@@ -1,7 +1,3 @@
-if (process.platform != 'linux'){
-    console.error("This program can only be run under linux!");
-    return;
-}
 import { promises } from "fs";
 import * as tmi from "tmi.js";
 import * as chi from "child_process";
