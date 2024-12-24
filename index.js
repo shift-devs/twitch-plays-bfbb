@@ -1,3 +1,7 @@
+if (process.platform != 'linux'){
+    console.error("This program can only be run under linux!");
+    return;
+}
 import { promises } from "fs";
 import * as tmi from "tmi.js";
 import * as chi from "child_process";
@@ -31,7 +35,7 @@ const MODETEXT = [
 
 const usernameRegex = RegExp("^(#)?[a-zA-Z0-9][\\w]{2,24}$");
 
-const DEVSAVERS = ["aaronrules5", "darkrta", "the_ivo_robotnic"]
+const DEVSAVERS = ["aaronrules5"]
 
 const settingsObj = JSON.parse(await promises.readFile("./settings.json", "UTF-8"));
 const CHANNELNAME = settingsObj["channel-name"];
@@ -55,7 +59,7 @@ const KEYS = ["A","B","X","Y","Z","L","R"]
 const SIMPLEACTIONS = {
     "BASH": "Y",
 //    "SLAM": "X",
-    "BOWL": "X",
+//    "BOWL": "X",
     "ATTACK": "B"
 }
 
@@ -63,6 +67,7 @@ const SIMPLEACTIONS = {
 
 const actionsModifiers = {
 	MICRO: 100,
+    LITTLE: 500,
 	LIGHT: 500,
 	DOUBLE: 1000,
 	GIGA: 5000,
@@ -264,6 +269,13 @@ async function jump(dir1, dir2, time = 800) {
     tickableInputs.A += 250;
 }
 
+async function bowl(dir1, dir2, time = 1000){
+    if (dir1 || dir2){
+        move(dir1, dir2, time);
+    }
+    tickableInputs.X += time;
+}
+
 async function glide(dir1, dir2, time = 2000){
     if (dir1 || dir2){
         move(dir1, dir2, time + 800);
@@ -289,7 +301,7 @@ async function slam(){
     tickableInputs.X += 50;
 }
 
-async function doublejump(dir1, dir2, time = 800) {
+async function doublejump(dir1, dir2, time = 1000) {
     if (dir1 || dir2){
         move(dir1, dir2, time);
     }
@@ -318,11 +330,6 @@ async function look(dir, time = 500) {
 }
 async function main(){
     console.clear();
-
-    if (process.platform != 'linux'){
-        console.error("This program can only be run under linux!");
-        return;
-    }
 
     setInterval(tryUnblock, 1000);
     setInterval(flushPerm, FLUSHPERM_INTERVAL);
@@ -469,6 +476,7 @@ async function main(){
         }
 
         switch(mSplit[0]){
+            case "PAUSE":
             case "START":
                 if (!opWall() || !checkModeBeforeSave())
                     return;
@@ -483,16 +491,19 @@ async function main(){
                         return;
                     setInputs(0x3C1C0B,Buffer.from([0x00,0x00]));
                     return;
+                case "PAUSE":
                 case "START":
                     if (!opWall() || !checkModeBeforeSave())
                         return;
                     tickableInputs.START += 100;
                     return;
                 case "SAVE":
+                case "SAVE1":
                     if (!opWall() || !checkModeBeforeSave())
                         return;
                     robot.keyTap("f1");
                     return;
+                case "LOAD1":
                 case "LOAD":
                     if (!opWall() || !checkModeBeforeSave())
                         return;
@@ -675,16 +686,20 @@ async function main(){
                 break
                 if (KEYS.includes(mSplit[1]) || mSplit[1] in DIRECTIONS)
                     hold(mSplit[1]);
-                //return;
-            case "SHIT":
-                tpSay(client,"Trolling");
+                //return
             case "SLAM":
                 slam();
+                return;
+            case "BOWL":
+                if (mSplit[1] in DIRECTIONS)
+                    glide(mSplit[1], mSplit[2] in DIRECTIONS ? mSplit[2] : null);
                 return;
             case "GLIDE":
                 if (mSplit[1] in DIRECTIONS)
                     glide(mSplit[1], mSplit[2] in DIRECTIONS ? mSplit[2] : null);
                 return;
+            case "SHIT":
+                tpSay(client,"Trolling");
             case "JUMP":
                 if (mSplit[1] in DIRECTIONS)
                     jump(mSplit[1], mSplit[2] in DIRECTIONS ? mSplit[2] : null);
@@ -729,6 +744,7 @@ async function main(){
                     if (mSplit[2] in DIRECTIONS) {
                         switch (mSplit[0]){
                             case "LIGHT":
+                            case "LITTLE":
                                 look(mSplit[2], 200);
                                 return;
                             case "GIGA":
@@ -753,6 +769,9 @@ async function main(){
                     return;
                 case "GLIDE":
                     glide(dir1, dir2, time);
+                    return;
+                case "BOWL":
+                    bowl(dir1, dir2, time);
                     return;
                 case "SLAM":
                     slam();
