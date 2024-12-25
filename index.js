@@ -834,7 +834,7 @@ function main(){
             dirCalc(0,1);
         }
         // --- out of loop
-        if (itBuilder.inputs.length > MAX_INPUTS) {
+        if (iSplit.length > MAX_INPUTS) {
             tpSay(client, `@${tags.username} That's ${MAX_INPUTS+1}+ inputs in one message! Too many!`);
             return;
         }
