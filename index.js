@@ -761,7 +761,7 @@ function main(){
                 case "BOWL":
                     dirCalc(1,1);
                     itBuilder.inputs.push({"op": ITOP.BUTTON, "button": "X", "time": DEFAULT_BUTTON});
-                    break;
+                    continue;
                 case "SNEAK":
                     itBuilder.inputs.push({"op": ITOP.SETSNEAK, "sneak": 1});
                     continue;
