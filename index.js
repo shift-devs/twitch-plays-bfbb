@@ -59,7 +59,8 @@ const ITOP = {
     MOVE: 4,
     LOOK: 5,
     SETSNEAK: 6,
-    OTHER: 7
+    OTHER: 7,
+    IWAIT: 8
 }
 
 const DIRECTIONS = {
@@ -261,6 +262,7 @@ function execInputThreads(){
         while (curThread.sleeping == 0 && curThread.inputs.length != 0){
             let curInput = curThread.inputs[0];
             switch (curInput.op){
+                case ITOP.IWAIT:
                 case ITOP.WAIT:
                     curThread.sleeping = setTimeout(wakeThread.bind(null,curThread),curInput.time*1000);
                     break;
@@ -282,7 +284,7 @@ function execInputThreads(){
                     break;
                 case ITOP.BUTTON:
                     if (inputUnuseTimeouts[curInput.button] != 0){
-                        curThread.inputs.splice(0,0,{"op":ITOP.WAIT,"time":0.05});
+                        curThread.inputs.splice(0,0,{"op":ITOP.IWAIT,"time":0.05});
                         curThread.inputs.splice(0,0,{"op":ITOP.NOP,"time":0});
                         doInputUnuse(curInput.button);
                         break;
@@ -292,7 +294,7 @@ function execInputThreads(){
                 case ITOP.MOVE:
                     if (inputUnuseTimeouts.MOVE != 0){
                         doInputUnuse("MOVE");
-                        curThread.inputs.splice(0,0,{"op":ITOP.WAIT,"time":0.05});
+                        curThread.inputs.splice(0,0,{"op":ITOP.IWAIT,"time":0.05});
                         curThread.inputs.splice(0,0,{"op":ITOP.NOP,"time":0});
                         break;
                     }
@@ -303,7 +305,7 @@ function execInputThreads(){
                 case ITOP.LOOK:
                     if (inputUnuseTimeouts.LOOK != 0){
                         doInputUnuse("LOOK");
-                        curThread.inputs.splice(0,0,{"op":ITOP.WAIT,"time":0.05});
+                        curThread.inputs.splice(0,0,{"op":ITOP.IWAIT,"time":0.05});
                         curThread.inputs.splice(0,0,{"op":ITOP.NOP,"time":0});
                         break;
                     }
@@ -726,7 +728,7 @@ function main(){
                 timeCalc = bLastIsTime ? timeCalc : DEFAULT_BUTTON;
                 if (bDouble){
                     itBuilder.inputs.push({"op": ITOP.BUTTON, "button": mSplit[0], "time": timeCalc * timeCoeff});
-                    itBuilder.inputs.push({"op": ITOP.WAIT, "time": 0.25});
+                    itBuilder.inputs.push({"op": ITOP.IWAIT, "time": 0.25});
                 }
                 itBuilder.inputs.push({"op": ITOP.BUTTON, "button": mSplit[0], "time": timeCalc * timeCoeff});
                 continue;
@@ -801,16 +803,16 @@ function main(){
                     continue;
                 case "SLAM":
                     itBuilder.inputs.push({"op": ITOP.BUTTON, "button": "A", "time": DEFAULT_BUTTON});
-                    itBuilder.inputs.push({"op": ITOP.WAIT, "time": 0.25});
+                    itBuilder.inputs.push({"op": ITOP.IWAIT, "time": 0.25});
                     itBuilder.inputs.push({"op": ITOP.BUTTON, "button": "X", "time": DEFAULT_BUTTON});
                     continue;
                 case "GLIDE":
                     dirCalc(1,2);
                     timeCalc = bLastIsTime ? timeCalc : DEFAULT_BUTTON;
                     itBuilder.inputs.push({"op": ITOP.BUTTON, "button": "A", "time": DEFAULT_BUTTON});
-                    itBuilder.inputs.push({"op": ITOP.WAIT, "time": 0.25});
+                    itBuilder.inputs.push({"op": ITOP.IWAIT, "time": 0.25});
                     itBuilder.inputs.push({"op": ITOP.BUTTON, "button": "A", "time": DEFAULT_BUTTON});
-                    itBuilder.inputs.push({"op": ITOP.WAIT, "time": 0.25});
+                    itBuilder.inputs.push({"op": ITOP.IWAIT, "time": 0.25});
                     timeCalc = bLastIsTime ? timeCalc : 2;
                     itBuilder.inputs.push({"op": ITOP.BUTTON, "button": "A", "time": timeCalc * timeCoeff});
                     continue;
@@ -823,7 +825,7 @@ function main(){
                     timeCalc = bLastIsTime ? timeCalc : DEFAULT_BUTTON;
                     itBuilder.inputs.push({"op": ITOP.BUTTON, "button": "A", "time": DEFAULT_BUTTON});
                     if (bDouble){
-                        itBuilder.inputs.push({"op": ITOP.WAIT, "time": 0.25});
+                        itBuilder.inputs.push({"op": ITOP.IWAIT, "time": 0.25});
                         itBuilder.inputs.push({"op": ITOP.BUTTON, "button": "A", "time": DEFAULT_BUTTON});
                     }
                     mSplit.splice(0,1); 
