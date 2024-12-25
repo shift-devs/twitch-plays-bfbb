@@ -331,6 +331,7 @@ function execInputThreads(){
 }
 
 function main(){
+    console.clear();
     const client = new tmi.Client({
         channels: [settingsObj["channel-name"]],
         ...(!ANON && {identity: {username: BOTNAME, password: `oauth:${TOKEN}`}})
@@ -734,6 +735,8 @@ function main(){
                 const finalDirection = Math.atan2(vertTally,horzTally);
                 const stickX = Math.cos(finalDirection);
                 const stickY = Math.sin(finalDirection);
+                if (vertTally == 0 && horzTally == 0)
+                    continue;
                 itBuilder.inputs.push({"op": ITOP.LOOK, "stickX": stickX, "stickY": stickY, "time": timeCalc * timeCoeff});
                 continue;
             }
@@ -753,6 +756,8 @@ function main(){
                     const finalDirection = Math.atan2(vertTally,horzTally);
                     const stickX = Math.cos(finalDirection);
                     const stickY = Math.sin(finalDirection);
+                    if (vertTally == 0 && horzTally == 0)
+                        return;
                     itBuilder.inputs.push({"op": ITOP.MOVE, "stickX": stickX, "stickY": stickY, "time": timeCalc * timeCoeff});
                 }
             }
