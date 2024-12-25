@@ -758,6 +758,11 @@ function main(){
             }
 
             switch (mSplit[0]){
+                case "CRUISEBOOST":
+                    dirCalc(1,1);
+                    itBuilder.inputs.push({"op": ITOP.BUTTON, "button": "L", "time": DEFAULT_BUTTON});
+                    itBuilder.inputs.push({"op": ITOP.BUTTON, "button": "X", "time": DEFAULT_BUTTON});
+                    continue;
                 case "BOWL":
                     dirCalc(1,1);
                     itBuilder.inputs.push({"op": ITOP.BUTTON, "button": "X", "time": DEFAULT_BUTTON});
@@ -767,6 +772,9 @@ function main(){
                     continue;
                 case "UNSNEAK":
                     itBuilder.inputs.push({"op": ITOP.SETSNEAK, "sneak": 0});
+                    continue;
+                case "SHOOT":
+                    itBuilder.inputs.push({"op": ITOP.BUTTON, "button": "L", "time": DEFAULT_BUTTON});
                     continue;
                 case "ATTACK":
                     itBuilder.inputs.push({"op": ITOP.BUTTON, "button": "B", "time": DEFAULT_BUTTON});
