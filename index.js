@@ -844,6 +844,7 @@ function main(){
             inputTime = Math.max(inputTime,0);
             if (itBuilder.inputs[i].op==ITOP.WAIT){
                 finalWaits+=inputTime;
+                itBuilder.inputs[i].time = inputTime;
                 continue;
             }
             inputTime = Math.min(inputTime,MAX_INPUT_TIME);
