@@ -1,3 +1,7 @@
+if (process.platform != 'linux'){
+    console.error("This program can only be run under linux!");
+    process.exit();
+}
 import { promises } from "fs";
 import * as tmi from "tmi.js";
 import * as chi from "child_process";
@@ -5,11 +9,6 @@ import { default as robot } from "@jitsi/robotjs";
 import { createRequire } from "node:module";
 const nativeModule = createRequire(import.meta.url)("./nodephin.node"); // custom bs
 let setInputs = nativeModule.setInputs;
-
-// Very fast tick interval, but we only call setInputs on input changes. So... probably fine.
-const CTICK_INTERVAL = 10;
-const CTICK_MAX = 6000;
-const FLUSHPERM_INTERVAL = 30000;
 
 const MODE = {
     DISABLED: 0,
@@ -21,7 +20,7 @@ const MODE = {
 }
 
 const MODETEXT = [
-    "Streaming",
+    "Disabled",
     "Paused",
     "Anarchy",
     "Democracy",
@@ -29,9 +28,87 @@ const MODETEXT = [
     "ModsOnly"
 ]
 
+const DEFAULT_WAIT = 1;
+const DEFAULT_BUTTON = 0.4;
+const DEFAULT_MOVE = 1;
+const DEFAULT_LOOK = 0.5;
+const MAX_INPUTS = 30;
+const MAX_WAIT = 10;
+const MAX_INPUT_TIME = MAX_WAIT;
+const SNEAK_MOD = 0.33;
+
+const actionModifiers = {
+    NANO: 0.1,
+	MICRO: 0.25,
+    SLIGHT: 0.5,
+    LITTLE: 0.5,
+	LIGHT: 0.5,
+	DOUBLE: 2,
+    SUPER: 4, 
+	GIGA: 6
+};
+
+const ITOP = {
+    NOP: 0,
+    WAIT: 1,
+    HALT: 2,
+    BUTTON: 3,
+    MOVE: 4,
+    LOOK: 5,
+    SETSNEAK: 6,
+    OTHER: 7
+}
+
+const DIRECTIONS = {
+    UP: [0,1],
+    FORWARD: [0,1],
+    STRAIGHT: [0,1],
+    DOWN: [0,-1],
+    BACK: [0,-1],
+    LEFT: [-1,0],
+    RIGHT: [1,0]
+}
+
+const BUTTONS = ['A','B','X','Y','L','R','Z'];
+
+
+let globalCooldown = 0;
+let cdDone = true;
+
+function doCooldownDone(){
+    cdDone = true;
+}
+
+let inputUnuseTimeouts = {
+    "A": 0,
+    "B": 0,
+    "X": 0,
+    "Y": 0,
+    "L": 0,
+    "R": 0,
+    "Z": 0,
+    "START": 0,
+    "MOVE": 0,
+    "LOOK": 0
+}
+
+let stickStates = {
+    "MX": 0x80,
+    "MY": 0x80,
+    "LX": 0x80,
+    "LY": 0x80
+}
+
+let requestedMode = MODE.DEMOCRACY;
+let actualMode = requestedMode;
+let actualModeLock = false;
+
+let sneaking = 0;
+
+let inputThreads = []
 const usernameRegex = RegExp("^(#)?[a-zA-Z0-9][\\w]{2,24}$");
 
-const DEVSAVERS = ["aaronrules5"]
+const DEVS = ["aaronrules5"]
 
 const settingsObj = JSON.parse(await promises.readFile("./settings.json", "UTF-8"));
 const CHANNELNAME = settingsObj["channel-name"];
@@ -40,35 +117,6 @@ const loginObj = JSON.parse(await promises.readFile("./login.json", "UTF-8"));
 const BOTNAME = loginObj["bot-name"];
 const TOKEN = loginObj["access-token"];
 const ANON = (!BOTNAME || !TOKEN);
-
-const DIRECTIONS = {
-	FORWARD: "UP",
-	UP: "UP",
-	BACK: "DOWN",
-	DOWN: "DOWN",
-	LEFT: "LEFT",
-	RIGHT: "RIGHT",
-};
-
-const KEYS = ["A","B","X","Y","Z","L","R"]
-
-const SIMPLEACTIONS = {
-    "BASH": "Y",
-//    "SLAM": "X",
-//    "BOWL": "X",
-    "ATTACK": "B"
-}
-
-// const simpleActions = ["HOLD", "JUMP", "LOOK", "TURN", "PRESS", "MOVE", "SNEAK", "UNSNEAK", "HALT"];
-
-const actionsModifiers = {
-	MICRO: 100,
-    LITTLE: 500,
-	LIGHT: 500,
-	DOUBLE: 1500,
-	GIGA: 5000,
-    HOLD: 6000
-};
 
 let permStr = await promises.readFile("./perm.json", "UTF-8")
 let permObj = {};
@@ -83,77 +131,31 @@ catch {
     permObj["blocks"] = {};
 }
 
-let requestedMode = MODE.DEMOCRACY;
-let actualMode = requestedMode;
-let actualModeLock = false;
-
-let prevInputStates = {}
-
-let tickableInputs = {
-    "A": 0,
-    "B": 0,
-    "X": 0,
-    "Y": 0,
-    "START": 0,
-    "L": 0,
-    "R": 0,
-    "Z": 0,
-    "UP": 0,
-    "DOWN": 0,
-    "LEFT": 0,
-    "RIGHT": 0,
-    "CUP": 0,
-    "CLEFT": 0,
-    "CDOWN": 0,
-    "CRIGHT": 0,
-}
-
-let sneaking = false;
-
-let globalCooldown = 0;
-let cdDone = true;
-
-function doCooldownDone(){
-    cdDone = true;
-}
-
-function clearTicks(){
-    for (let key in tickableInputs) {
-        tickableInputs[key] = 0;
-    }
-}
-
-function doTick(){
-    let needsUpdate = false;
-    for (let key in tickableInputs) {
-        let value = tickableInputs[key];
-        if (value != 0 && value != -1){
-            value -= CTICK_INTERVAL;
-            value = Math.max(0, value);
-            value = Math.min(CTICK_MAX, value);
-            tickableInputs[key] = value;
-        }
-        if (prevInputStates[key] != (value ? 1 : 0)){
-            needsUpdate = true;
-        }
-        prevInputStates[key] = tickableInputs[key] ? 1 : 0;
-    }
-    if (needsUpdate)
-        finalSetInputs()
-}
-
 function finalSetInputs(){
     setInputs(0x37ECC0,Buffer.from([
-        (tickableInputs["A"] ? 0x01 : 0x00) | (tickableInputs["B"] ? 0x02 : 0x00) | (tickableInputs["X"] ? 0x04 : 0x00) | (tickableInputs["Y"] ? 0x08 : 0x00) | (tickableInputs["START"] ? 0x10 : 0x00),
-        (tickableInputs["Z"] ? 0x10 : 0x00) | (tickableInputs["R"] ? 0x20 : 0x00) | (tickableInputs["L"] ? 0x40 : 0x00) | 0x80,
-        tickableInputs["LEFT"] ? (sneaking ? 0x5A : 0x00) : (tickableInputs["RIGHT"] ? (sneaking ? 0xFF - 0x5A : 0xFF) : 0x80),
-        tickableInputs["DOWN"] ? (sneaking ? 0x5A : 0x00) : (tickableInputs["UP"] ? (sneaking ? 0xFF - 0x5A : 0xFF) : 0x80),
-        tickableInputs["CLEFT"] ? 0x00 : (tickableInputs["CRIGHT"] ? 0xFF : 0x80),
-        tickableInputs["CDOWN"] ? 0x00 : (tickableInputs["CUP"] ? 0xFF : 0x80),
+        (inputUnuseTimeouts["A"] ? 0x01 : 0x00) | (inputUnuseTimeouts["B"] ? 0x02 : 0x00) | (inputUnuseTimeouts["X"] ? 0x04 : 0x00) | (inputUnuseTimeouts["Y"] ? 0x08 : 0x00) | (inputUnuseTimeouts["START"] ? 0x10 : 0x00),
+        (inputUnuseTimeouts["Z"] ? 0x10 : 0x00) | (inputUnuseTimeouts["R"] ? 0x20 : 0x00) | (inputUnuseTimeouts["L"] ? 0x40 : 0x00) | 0x80,
+        inputUnuseTimeouts["MOVE"] ? Math.ceil(((stickStates.MX * (sneaking ? SNEAK_MOD : 1))+1)/2*255) : 0x80,
+        inputUnuseTimeouts["MOVE"] ? Math.ceil(((stickStates.MY * (sneaking ? SNEAK_MOD : 1))+1)/2*255) : 0x80,
+        inputUnuseTimeouts["LOOK"] ? 255 - Math.ceil(((stickStates.LX+1)/2*255)) : 0x80,
+        inputUnuseTimeouts["LOOK"] ? 255 - Math.ceil((stickStates.LY+1)/2*255) : 0x80,
         0x00,
         0x00
     ]));
 }
+
+function doInputUse(key,time){
+    clearTimeout(inputUnuseTimeouts[key]);
+    inputUnuseTimeouts[key] = setTimeout(doInputUnuse.bind(null,key),time);
+    finalSetInputs();
+}
+
+function doInputUnuse(key){
+    clearTimeout(inputUnuseTimeouts[key]);
+    inputUnuseTimeouts[key] = 0;
+    finalSetInputs();
+}
+
 
 async function sleep(ms){
     return new Promise((res)=>{
@@ -182,15 +184,15 @@ function tpSay(client, msg){
         return;
     let msgBuf = msg;
     while (msgBuf.length > 0) {
-		client.say(CHANNELNAME, msgBuf.slice(0, 400));
-		msgBuf = msgBuf.slice(400);
-	}
+        client.say(CHANNELNAME, msgBuf.slice(0, 400));
+        msgBuf = msgBuf.slice(400);
+    }
 }
 
 function tryUnblock(){
     permObj["blocks"] = permObj["blocks"].filter((x) => {
-		return Date.now() < x.expires || x.expires == -1;
-	});
+        return Date.now() < x.expires || x.expires == -1;
+    });
 }
 
 async function flushPerm(){
@@ -215,7 +217,7 @@ function setMode(client, whom, modeValue){
 async function resetDolphin(){
     actualMode = MODE.DISABLED;
     actualModeLock = true;
-    clearTicks();
+    removeAllThreads();
     chi.spawnSync("pkill",["-sigterm","dolphin-emu"]);
     await sleep(1000);
     chi.spawn("dolphin-emu",["-e",settingsObj["dol"]],{detached: true});
@@ -227,133 +229,139 @@ async function resetDolphin(){
     actualModeLock = false;
 }
 
-async function press(key) {
-	if (key)
-        tickableInputs[key] += 50;
+function wakeThread(thread){
+    thread.sleeping = 0;
+    setTimeout(execInputThreads,0);
 }
 
-async function hold(key, time = 6000) {
-	if (key in DIRECTIONS){
-        key = DIRECTIONS[key];
-        move(key, null, time);
-        return;
+function removeAllThreads(){
+    for (let j = 0; j < inputThreads.length; j++){
+        let delThread = inputThreads[j];
+        if (true){
+            if (delThread.inputs.length != 0){
+                if (delThread.sleeping != 0){
+                    clearTimeout(curThread.sleeping);
+                }
+                inputThreads.splice(j,1);
+            }
+        }
     }
-    tickableInputs[key] += time;
-}
-
-async function move(dir1, dir2, time = 1000) {
-    let finalDir1 = DIRECTIONS[dir1];
-    let finalDir2 = DIRECTIONS[dir2];
-    if ((finalDir1 == "UP" && finalDir2 == "DOWN") || (finalDir1 == "DOWN" && finalDir2 == "UP") || (finalDir1 == "LEFT" && finalDir2 == "RIGHT") || (finalDir1 == "RIGHT" && finalDir2 == "LEFT"))
-        return;
-    tickableInputs[DIRECTIONS[dir1]] += time;
-    tickableInputs[DIRECTIONS[dir2]] += time;
-    if ((tickableInputs.UP > 0 && tickableInputs.DOWN > 0) || (tickableInputs.LEFT > 0 && tickableInputs.RIGHT > 0)){
-        tickableInputs.UP = 0;
-        tickableInputs.DOWN = 0;
-        tickableInputs.LEFT = 0;
-        tickableInputs.RIGHT = 0;
-        tickableInputs[DIRECTIONS[dir1]] += time;
-        tickableInputs[DIRECTIONS[dir2]] += time;
+    for (let key in inputUnuseTimeouts){
+        doInputUnuse(key);
     }
 }
 
-async function jump(dir1, dir2, time = 800) {
-    if (dir1 || dir2){
-        move(dir1, dir2, time);
+function execInputThreads(){
+    for (let i = 0; i < inputThreads.length; i++){
+        const curThread = inputThreads[i];
+        while (curThread.sleeping == 0 && curThread.inputs.length != 0){
+            let curInput = curThread.inputs[0];
+            switch (curInput.op){
+                case ITOP.WAIT:
+                    curThread.sleeping = setTimeout(wakeThread.bind(null,curThread),curInput.time*1000);
+                    break;
+                case ITOP.HALT:
+                    for (let j = 0; j < inputThreads.length; j++){
+                        let delThread = inputThreads[j];
+                        if (delThread != curThread){
+                            if (delThread.inputs.length != 0){
+                                if (delThread.sleeping != 0){
+                                    clearTimeout(curThread.sleeping);
+                                }
+                                inputThreads.splice(j,1); // remove dead thread
+                            }
+                        }
+                    }
+                    for (let key in inputUnuseTimeouts){
+                        doInputUnuse(key);
+                    }
+                    break;
+                case ITOP.BUTTON:
+                    if (inputUnuseTimeouts[curInput.button] != 0){
+                        curThread.inputs.splice(0,0,{"op":ITOP.WAIT,"time":0.05});
+                        curThread.inputs.splice(0,0,{"op":ITOP.NOP,"time":0});
+                        doInputUnuse(curInput.button);
+                        break;
+                    }
+                    doInputUse(curInput.button,curInput.time*1000);
+                    break;
+                case ITOP.MOVE:
+                    if (inputUnuseTimeouts.MOVE != 0){
+                        doInputUnuse("MOVE");
+                        curThread.inputs.splice(0,0,{"op":ITOP.WAIT,"time":0.05});
+                        curThread.inputs.splice(0,0,{"op":ITOP.NOP,"time":0});
+                        break;
+                    }
+                    stickStates.MX = curInput.stickX;
+                    stickStates.MY = curInput.stickY;
+                    doInputUse("MOVE",curInput.time*1000);
+                    break;
+                case ITOP.LOOK:
+                    if (inputUnuseTimeouts.LOOK != 0){
+                        doInputUnuse("LOOK");
+                        curThread.inputs.splice(0,0,{"op":ITOP.WAIT,"time":0.05});
+                        curThread.inputs.splice(0,0,{"op":ITOP.NOP,"time":0});
+                        break;
+                    }
+                    stickStates.LX = curInput.stickX;
+                    stickStates.LY = curInput.stickY;
+                    doInputUse("LOOK",curInput.time*1000);
+                    break;
+                case ITOP.SETSNEAK:
+                    sneaking = curInput.sneak;
+                    finalSetInputs();
+                    break;
+                case ITOP.NOP:
+                    break;
+                default:
+                    break;
+            }
+            curThread.inputs.splice(0,1); // prepare for the next input
+        }
     }
-    tickableInputs.A += 250;
-}
-
-async function bowl(dir1, dir2, time = 1000){
-    if (dir1 || dir2){
-        move(dir1, dir2, time);
+    for (let i = 0; i < inputThreads.length; i++){
+        const curThread = inputThreads[i];
+        if (curThread.inputs.length == 0){
+            if (curThread.sleeping != 0){
+                clearTimeout(curThread.sleeping);
+            }
+            inputThreads.splice(i,1); // remove dead thread
+        }
     }
-    tickableInputs.X += time;
 }
 
-async function glide(dir1, dir2, time = 2000){
-    if (dir1 || dir2){
-        move(dir1, dir2, time + 800);
-    }
-    tickableInputs.A += 250;
-    await sleep(250);
-    tickableInputs.A = 0;
-    await sleep(50);
-    tickableInputs.A += 400;
-    await sleep(400);
-    tickableInputs.A = 0;
-    await sleep(50);
-    tickableInputs.A += time + 800;
-}
-
-async function slam(){
-    tickableInputs.A += 250;
-    await sleep(250);
-    tickableInputs.A = 0;
-    await sleep(50);
-    tickableInputs.A += 250;
-    await sleep(100);
-    tickableInputs.X += 50;
-}
-
-async function doublejump(dir1, dir2, time = 1500) {
-    if (dir1 || dir2){
-        move(dir1, dir2, time);
-    }
-    tickableInputs.A += 250;
-    await sleep(250);
-    tickableInputs.A = 0;
-    await sleep(50);
-    tickableInputs.A += 250;
-}
-
-async function look(dir, time = 500) {
-	switch (dir) {
-		case "LEFT":
-			tickableInputs.CRIGHT += time;
-			return;
-		case "RIGHT":
-            tickableInputs.CLEFT += time;
-			return;
-        case "UP":
-            tickableInputs.CDOWN += time;
-            return;
-        case "DOWN":
-            tickableInputs.CUP += time;
-            return;
-	}
-}
-async function main(){
-    console.clear();
-
-    setInterval(tryUnblock, 1000);
-    setInterval(flushPerm, FLUSHPERM_INTERVAL);
-    setInterval(doTick, CTICK_INTERVAL);
-
+function main(){
     const client = new tmi.Client({
         channels: [settingsObj["channel-name"]],
         ...(!ANON && {identity: {username: BOTNAME, password: `oauth:${TOKEN}`}})
     });
 
     if (ANON){
-        console.warn("[Anonymous Mode - No chat messages will be sent from the bot]");
+        console.warn("[Anonymous Mode] - No chat messages will be sent from the bot");
     }
 
     client.connect();
     client.on('connected', () => {
         // tpSay(client, "I am ready!");
-    })
+    });
 
     client.on('message', async (channel, tags, message, self) => {
         const isBroadcaster = ciEqual(CHANNELNAME,tags.username);
         const isMod = tags.mod;
         const isOp = ciIncludes(permObj["ops"],tags.username);
-        const isDevSaver = ciIncludes(DEVSAVERS,tags.username);
+        const isDev = ciIncludes(DEVS,tags.username);
         if (!tags.username || ciEqual(tags.username, BOTNAME))
             return;
 
-        // robot.mouseClick();
+        let iSplit = message.split(",");
+        let itBuilder = {"user": tags, "sleeping": 0, "inputs": []}
+        let bTroll = 0;
+
+        if (cdDone == false){
+            return;
+        }
+        cdDone = false;
+        setTimeout(doCooldownDone, globalCooldown);
 
         let mSplit = message.toUpperCase().split(" ");
 
@@ -362,7 +370,7 @@ async function main(){
         }
 
         let modeMsg=(modeValue)=>{
-            tpSay(client,`@${tags.username} Setting the mode to ${MODETEXT[modeValue]}!`);
+            // tpSay(client,`@${tags.username} Setting the mode to ${MODETEXT[modeValue]}!`);
         }
 
         let opWall=()=>{
@@ -437,8 +445,8 @@ async function main(){
                     // clear any inputs in buffer
                     modeMsg(MODE.DISABLED);
                     setMode(client, tags.username, MODE.DISABLED);
-                    clearTicks();
-                    chi.spawnSync("pkill",["-sigkill","dolphin-emu"]);
+                    removeAllThreads();
+                    //chi.spawnSync("pkill",["-sigkill","dolphin-emu"]);
                     return;
                 case "FREEZE":
                 case "FROZEN":
@@ -448,6 +456,7 @@ async function main(){
                         return;
                     }
                     modeMsg(MODE.FROZEN);
+                    removeAllThreads();
                     if (setMode(client, tags.username, MODE.FROZEN)){
                         robot.keyTap("f10");
                     };
@@ -476,13 +485,15 @@ async function main(){
             case "START":
                 if (!opWall() || !checkModeBeforeSave())
                     return;
-                tickableInputs.START += 100;
+                doInputUse("START",100);
                 return;
         }
 
         if (mSplit[0] == "TP"){
             switch(mSplit[1]){
                 case "ANTISOFTLOCK":
+                case "SOFTLOCK":
+                case "DIE":
                     if (!opWall() || !checkModeBeforeSave())
                         return;
                     setInputs(0x3C1C0B,Buffer.from([0x00,0x00]));
@@ -491,16 +502,50 @@ async function main(){
                 case "START":
                     if (!opWall() || !checkModeBeforeSave())
                         return;
-                    tickableInputs.START += 100;
+                    doInputUse("START",100);
                     return;
                 case "SAVE":
+                    if (mSplit[2]){
+                        switch (mSplit[2]){
+                            case "1":
+                                robot.keyTap("f1");
+                                return;
+                            case "2":
+                                robot.keyTap("f3");
+                                return;
+                            case "3":
+                                robot.keyTap("f5");
+                                return;
+                            default:
+                                tpSay(client,`@${tags.username} Try again, please!`);
+                                return;
+                        }
+                    } // no break / return here on purpose
                 case "SAVE1":
                     if (!opWall() || !checkModeBeforeSave())
                         return;
                     robot.keyTap("f1");
                     return;
-                case "LOAD1":
                 case "LOAD":
+                    if (!opWall() || !checkModeBeforeSave())
+                        return;
+                    if (mSplit[2]){
+                        switch (mSplit[2]){
+                            case "1":
+                                robot.keyTap("f2");
+                                return;
+                            case "2":
+                                robot.keyTap("f4");
+                                return;
+                            case "3":
+                                robot.keyTap("f6");
+                                return;
+                            default:
+                                tpSay(client,`@${tags.username} Try again, please!`);
+                                return;
+                        }
+                    } // no break / return here on purpose
+                case "LOAD1":
                     if (!opWall() || !checkModeBeforeSave())
                         return;
                     robot.keyTap("f2");
@@ -538,7 +583,8 @@ async function main(){
                 case "DUMPTICKABLE":
                     if (!opWall())
                         return;
-                    tpSay(client, `@${tags.username} ${JSON.stringify(tickableInputs)}`);
+                    tpSay(client, `@${tags.username} suck my movie`);
+                    //tpSay(client, `@${tags.username} ${JSON.stringify(tickableInputs)}`);
                     return;
                 case "MODE":
                     if (!modWall())
@@ -556,6 +602,7 @@ async function main(){
                     permObj["ops"].push(userToOp);
                     tpSay(client,`@${tags.username} Opped ${userToOp}!`);
                     return;
+                case "UNOP":
                 case "DEOP":
                     if (!modWall())
                         return;
@@ -569,10 +616,10 @@ async function main(){
                     tpSay(client,`@${tags.username} Deopped ${userToDeop}!`);
                     return;
                 case "BLOCK":
-                    if (!modWall())
+                    if (!opWall())
                         return;
                     let blockLength = parseInt(mSplit[3], 10);
-					blockLength = Number.isFinite(blockLength) ? blockLength : -1; // If no number or an invalid one is given, assume *forever*
+                    blockLength = Number.isFinite(blockLength) ? blockLength : -1; // If no number or an invalid one is given, assume *forever*
                     const userToBlock = mSplit[2];
                     var usersBlocked = permObj["blocks"].map(x => x.user);
                     if (!userToBlock || !userToBlock.match(usernameRegex) || usersBlocked.indexOf(userToBlock)!=-1){
@@ -583,7 +630,7 @@ async function main(){
                     tpSay(client,`@${tags.username} Blocking ${userToBlock}'s input for${blockLength == -1 ? "ever" : " " + blockLength + " seconds"}!`);
                     return;
                 case "UNBLOCK":
-                    if (!modWall())
+                    if (!opWall())
                         return;
                     const userToUnblock = mSplit[2];
                     var usersBlocked = permObj["blocks"].map(x => x.user);
@@ -612,7 +659,7 @@ async function main(){
                     tpSay(client, `@${tags.username} Cooldown is now set to ${cooldownValue} seconds`);
                     return;
                 case "LIST":
-                    if (!modWall())
+                    if (!opWall())
                         return;
                     listSubCommands();
                     return;
@@ -641,147 +688,148 @@ async function main(){
                 break;
         }
 
-        if (cdDone == false)
-            return;
+        for (let i = 0; i < iSplit.length; i++){
+            const curInput = iSplit[i];
+            mSplit = curInput.trim().toUpperCase().split(" ");
+            let timeCoeff = 1;
+            let bDouble = 0;
+            let timeCalc = parseFloat(mSplit[mSplit.length-1]);
+            let bLastIsTime = Number.isFinite(timeCalc);
+            timeCalc = bLastIsTime ? timeCalc : 0;
 
-        setTimeout(doCooldownDone,globalCooldown*1000);
-        cdDone = false;
-
-        if (mSplit[0] in DIRECTIONS) {
-            move(mSplit[0], mSplit[1] in DIRECTIONS ? mSplit[1] : null);
-            return;
-        }
-
-        if (KEYS.includes(mSplit[0])){
-            press(mSplit[0]);
-            return;
-        }
-
-        if (Object.keys(SIMPLEACTIONS).includes(mSplit[0])){
-            press(SIMPLEACTIONS[mSplit[0]]);
-            return;
-        }
-
-        switch (mSplit[0]) {
-            case "HALT":
-                clearTicks();
-                return;
-            case "MOVE":
-                if (mSplit[1] in DIRECTIONS)
-                    move(mSplit[1], mSplit[2] in DIRECTIONS ? mSplit[2] : null);
-                return;
-            case "PRESS":
-                if (KEYS.includes(mSplit[0]))
-                    press(mSplit[0]);
-                return;
-            case "TURN":
-            case "LOOK":
-                if (mSplit[1] in DIRECTIONS) look(mSplit[1]);
-                return;
-            case "HOLD":
-                break
-                if (KEYS.includes(mSplit[1]) || mSplit[1] in DIRECTIONS)
-                    hold(mSplit[1]);
-                //return
-            case "SLAM":
-                slam();
-                return;
-            case "BOWL":
-                if (mSplit[1] in DIRECTIONS)
-                    glide(mSplit[1], mSplit[2] in DIRECTIONS ? mSplit[2] : null);
-                return;
-            case "GLIDE":
-                if (mSplit[1] in DIRECTIONS)
-                    glide(mSplit[1], mSplit[2] in DIRECTIONS ? mSplit[2] : null);
-                return;
-            case "SHIT":
-                tpSay(client,"Trolling");
-            case "JUMP":
-                if (mSplit[1] in DIRECTIONS)
-                    jump(mSplit[1], mSplit[2] in DIRECTIONS ? mSplit[2] : null);
-                else jump();
-                return;
-            case "SNEAK":
-                sneaking = true;
-                return;
-            case "UNSNEAK":
-                sneaking = false;
-                return;
-        }
-
-        if (mSplit[0] in actionsModifiers) {
-            var dir1, dir2, time;
-            time = actionsModifiers[mSplit[0]];
-            dir1 = mSplit[2] in DIRECTIONS ? mSplit[2] : null;
-            dir2 = mSplit[3] in DIRECTIONS ? mSplit[3] : null;
-            if (KEYS.includes(mSplit[1])) {
-                if (mSplit[0] == "DOUBLE"){
-                    tickableInputs[mSplit[1]] += 250;
-                    await sleep(250);
-                    tickableInputs[mSplit[1]] = 0;
-                    await sleep(50);
-                    tickableInputs[mSplit[1]] += 250;
-                    return;
-                }
-                if (mSplit[0] == "HOLD"){
-                    hold(mSplit[1]);
-                    return;
-                }
-                press(mSplit[1]);
-                return;
+            if (mSplit[0] == "WAIT"){
+                timeCalc = parseFloat(mSplit[1]);
+                timeCalc = Number.isFinite(timeCalc) ? timeCalc : DEFAULT_WAIT;
+                itBuilder.inputs.push({"op": ITOP.WAIT, "time": timeCalc});
+                continue;
             }
-            if (mSplit[1] in DIRECTIONS) {
-                move(mSplit[1], mSplit[2], time);
-                return;
+            if (mSplit[0] == "HALT"){
+                itBuilder.inputs.push({"op": ITOP.HALT});
+                continue;
             }
-            switch (mSplit[1]) {
-                case "TURN":
-                case "LOOK":
-                    if (mSplit[2] in DIRECTIONS) {
-                        switch (mSplit[0]){
-                            case "LIGHT":
-                            case "LITTLE":
-                                look(mSplit[2], 200);
-                                return;
-                            case "GIGA":
-                                look(mSplit[2], 1000);
-                                return;
-                            case "MICRO":
-                                look(mSplit[2], 100);
-                                return;
-                            case "DOUBLE":
-                                look(mSplit[2], 800);
-                                return;
+            if (Object.keys(actionModifiers).includes(mSplit[0])){
+                if (mSplit[0] == "DOUBLE")
+                    bDouble = 1;
+                timeCoeff = actionModifiers[mSplit[0]];
+                mSplit.splice(0, 1);
+            }
+
+            if (BUTTONS.includes(mSplit[0])){
+                timeCalc = bLastIsTime ? timeCalc : DEFAULT_BUTTON;
+                itBuilder.inputs.push({"op": ITOP.BUTTON, "button": mSplit[0], "time": timeCalc * timeCoeff});
+                continue;
+            }
+
+            if (mSplit[0] == "LOOK" || mSplit[0] == "TURN"){
+                timeCalc = bLastIsTime ? timeCalc : DEFAULT_LOOK;
+                let horzTally = 0;
+                let vertTally = 0;
+                for (let j = 1; j < mSplit.length-(bLastIsTime?1:0); j++){
+                    if (Object.keys(DIRECTIONS).includes(mSplit[j])){
+                        let dirInc = DIRECTIONS[mSplit[j]];
+                        horzTally+=dirInc[0];
+                        vertTally+=dirInc[1];
+                    }
+                }
+                const finalDirection = Math.atan2(vertTally,horzTally);
+                const stickX = Math.cos(finalDirection);
+                const stickY = Math.sin(finalDirection);
+                itBuilder.inputs.push({"op": ITOP.LOOK, "stickX": stickX, "stickY": stickY, "time": timeCalc * timeCoeff});
+                continue;
+            }
+
+            function dirCalc(startAt, mult){
+                if (Object.keys(DIRECTIONS).includes(mSplit[startAt])){
+                    timeCalc = bLastIsTime ? timeCalc : DEFAULT_MOVE * mult;
+                    let horzTally = 0;
+                    let vertTally = 0;
+                    for (let j = startAt; j < mSplit.length-(bLastIsTime?1:0); j++){
+                        if (Object.keys(DIRECTIONS).includes(mSplit[j])){
+                            let dirInc = DIRECTIONS[mSplit[j]];
+                            horzTally+=dirInc[0];
+                            vertTally+=dirInc[1];
                         }
                     }
-                    return;
-                case "SHIT":
-                    tpSay(client,"Trolling");
-                case "JUMP":
-                    if (mSplit[0] == "DOUBLE")
-                        doublejump(dir1,dir2,time);
-                    else
-                        jump(dir1, dir2, time);
-                    return;
-                case "GLIDE":
-                    glide(dir1, dir2, time);
-                    return;
-                case "BOWL":
-                    bowl(dir1, dir2, time);
-                    return;
-                case "SLAM":
-                    slam();
-                    return;
-                case "MOVE":
-                    move(dir1, dir2, time);
-                    return;
-                case "HOLD":
-                    break
-                    if (KEYS.includes(mSplit[2]) || mSplit[2] in DIRECTIONS){}
-                        hold(mSplit[2]);
-                    //return;
+                    const finalDirection = Math.atan2(vertTally,horzTally);
+                    const stickX = Math.cos(finalDirection);
+                    const stickY = Math.sin(finalDirection);
+                    itBuilder.inputs.push({"op": ITOP.MOVE, "stickX": stickX, "stickY": stickY, "time": timeCalc * timeCoeff});
+                }
             }
+
+            switch (mSplit[0]){
+                case "BOWL":
+                    dirCalc(1,1);
+                    itBuilder.inputs.push({"op": ITOP.BUTTON, "button": "X", "time": DEFAULT_BUTTON});
+                    break;
+                case "SNEAK":
+                    itBuilder.inputs.push({"op": ITOP.SETSNEAK, "sneak": 1});
+                    continue;
+                case "UNSNEAK":
+                    itBuilder.inputs.push({"op": ITOP.SETSNEAK, "sneak": 0});
+                    continue;
+                case "ATTACK":
+                    itBuilder.inputs.push({"op": ITOP.BUTTON, "button": "B", "time": DEFAULT_BUTTON});
+                    continue;
+                case "BASH":
+                    itBuilder.inputs.push({"op": ITOP.BUTTON, "button": "Y", "time": DEFAULT_BUTTON});
+                    continue;
+                case "SLAM":
+                    itBuilder.inputs.push({"op": ITOP.BUTTON, "button": "A", "time": DEFAULT_BUTTON});
+                    itBuilder.inputs.push({"op": ITOP.WAIT, "time": 0.25});
+                    itBuilder.inputs.push({"op": ITOP.BUTTON, "button": "X", "time": DEFAULT_BUTTON});
+                    continue;
+                case "GLIDE":
+                    dirCalc(1,2);
+                    timeCalc = bLastIsTime ? timeCalc : DEFAULT_BUTTON;
+                    itBuilder.inputs.push({"op": ITOP.BUTTON, "button": "A", "time": DEFAULT_BUTTON});
+                    itBuilder.inputs.push({"op": ITOP.WAIT, "time": 0.25});
+                    itBuilder.inputs.push({"op": ITOP.BUTTON, "button": "A", "time": DEFAULT_BUTTON});
+                    itBuilder.inputs.push({"op": ITOP.WAIT, "time": 0.25});
+                    timeCalc = bLastIsTime ? timeCalc : 2;
+                    itBuilder.inputs.push({"op": ITOP.BUTTON, "button": "A", "time": timeCalc * timeCoeff});
+                    continue;
+                case "SHIT":
+                case "DIAPER":
+                case "DIAPEY":
+                    bTroll = 1;
+                case "JUMP":
+                    dirCalc(1,1);
+                    timeCalc = bLastIsTime ? timeCalc : DEFAULT_BUTTON;
+                    itBuilder.inputs.push({"op": ITOP.BUTTON, "button": "A", "time": DEFAULT_BUTTON});
+                    if (bDouble){
+                        itBuilder.inputs.push({"op": ITOP.WAIT, "time": 0.25});
+                        itBuilder.inputs.push({"op": ITOP.BUTTON, "button": "A", "time": DEFAULT_BUTTON});
+                    }
+                    mSplit.splice(0,1); 
+                    continue;
+            }
+            dirCalc(0,1);
         }
+        // --- out of loop
+        if (itBuilder.inputs.length > MAX_INPUTS) {
+            tpSay(client, `@${tags.username} That's ${MAX_INPUTS+1}+ inputs in one message! Too many!`);
+            return;
+        }
+        let finalWaits = 0;
+        for (let i = 0; i < itBuilder.inputs.length; i++){
+            let inputTime = itBuilder.inputs[i].time;
+            if (itBuilder.inputs[i].op==ITOP.WAIT){
+                finalWaits+=inputTime;
+                continue
+            }
+            inputTime = Math.min(inputTime,MAX_INPUT_TIME);
+            inputTime = Math.max(inputTime,0);
+            itBuilder.inputs[i].time = inputTime;
+        }
+        if (finalWaits > MAX_WAIT){
+            tpSay(client, `@${tags.username} You "wait" for ${MAX_WAIT}+ seconds in total! Too many!`);
+            return;
+        }
+        if (bTroll)
+            tpSay(client,"Trolling");
+        inputThreads.splice(0, 0, itBuilder);
+        setTimeout(execInputThreads,0);
     });
 }
 
