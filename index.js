@@ -37,6 +37,9 @@ const MAX_WAIT = 10;
 const MAX_INPUT_TIME = MAX_WAIT;
 const SNEAK_MOD = 0.33;
 
+const FLUSHPERM_INTERVAL = 10000;
+const TRYUNBLOCK_INTERVAL = 1000;
+
 const actionModifiers = {
     NANO: 0.1,
 	MICRO: 0.25,
@@ -341,6 +344,9 @@ function main(){
         console.warn("[Anonymous Mode] - No chat messages will be sent from the bot");
     }
 
+    setTimeout(flushPerm, FLUSHPERM_INTERVAL);
+    setTimeout(tryUnblock, TRYUNBLOCK_INTERVAL);
+
     client.connect();
     client.on('connected', () => {
         // tpSay(client, "I am ready!");
@@ -431,7 +437,7 @@ function main(){
                 case "BLOCKED":
                 case "BLOCKS":
                 case "BLOCK":
-                    let blockMsgs = permObj.blocks.map((x)=>`${x.user} is blocked for${x.expires==-1?"ever":" "+Math.round(x.expires-Date.now()) + " seconds"}`);
+                    let blockMsgs = permObj.blocks.map((x)=>`${x.user} is blocked for${x.expires==-1?"ever":" "+Math.round((x.expires-Date.now())/1000) + " seconds"}`);
                     tpSay(client,`@${tags.username} Blocked users: ${blockMsgs.join(", ")}`)
                     break;
             }
