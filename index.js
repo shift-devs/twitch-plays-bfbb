@@ -413,7 +413,7 @@ function main(){
         let resumeGame=async (modeValue)=>{
             modeMsg(modeValue);
             if (actualMode == MODE.DISABLED){
-                await resetDolphin();
+                //await resetDolphin();
             }
             if (actualMode == MODE.FROZEN){
                 robot.keyTap("f10");
