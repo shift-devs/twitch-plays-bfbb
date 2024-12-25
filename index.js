@@ -344,8 +344,8 @@ function main(){
         console.warn("[Anonymous Mode] - No chat messages will be sent from the bot");
     }
 
-    setTimeout(flushPerm, FLUSHPERM_INTERVAL);
-    setTimeout(tryUnblock, TRYUNBLOCK_INTERVAL);
+    setInterval(flushPerm, FLUSHPERM_INTERVAL);
+    setInterval(tryUnblock, TRYUNBLOCK_INTERVAL);
 
     client.connect();
     client.on('connected', () => {
