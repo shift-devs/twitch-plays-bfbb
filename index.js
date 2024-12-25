@@ -717,6 +717,10 @@ function main(){
 
             if (BUTTONS.includes(mSplit[0])){
                 timeCalc = bLastIsTime ? timeCalc : DEFAULT_BUTTON;
+                if (bDouble){
+                    itBuilder.inputs.push({"op": ITOP.BUTTON, "button": mSplit[0], "time": timeCalc * timeCoeff});
+                    itBuilder.inputs.push({"op": ITOP.WAIT, "time": 0.25});
+                }
                 itBuilder.inputs.push({"op": ITOP.BUTTON, "button": mSplit[0], "time": timeCalc * timeCoeff});
                 continue;
             }
