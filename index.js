@@ -759,6 +759,7 @@ function main(){
 
             switch (mSplit[0]){
                 case "CRUISEBOOST":
+                case "CB":
                     dirCalc(1,1);
                     itBuilder.inputs.push({"op": ITOP.BUTTON, "button": "L", "time": DEFAULT_BUTTON});
                     itBuilder.inputs.push({"op": ITOP.BUTTON, "button": "X", "time": DEFAULT_BUTTON});
