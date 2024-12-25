@@ -839,16 +839,15 @@ function main(){
         let finalWaits = 0;
         for (let i = 0; i < itBuilder.inputs.length; i++){
             let inputTime = itBuilder.inputs[i].time;
-            if (itBuilder.inputs[i].op==ITOP.WAIT){
-                finalWaits+=inputTime;
-                continue
-            }
             inputTime = Math.min(inputTime,MAX_INPUT_TIME);
             inputTime = Math.max(inputTime,0);
             itBuilder.inputs[i].time = inputTime;
+            if (itBuilder.inputs[i].op==ITOP.WAIT){
+                finalWaits+=inputTime;
+            }
         }
         if (finalWaits > MAX_WAIT){
-            tpSay(client, `@${tags.username} You "wait" for ${MAX_WAIT+1}+ seconds in total! Too many!`);
+            tpSay(client, `@${tags.username} You wait for ${MAX_WAIT+1}+ seconds in total! Too many!`);
             return;
         }
         if (bTroll)
