@@ -391,7 +391,7 @@ function main(){
         }
 
         let devWall=()=>{
-            if (!isBroadcaster && !isDevSaver){
+            if (!isBroadcaster && !isDev){
                 if (isMod){
                     tpSay(client, `@${tags.username} Sorry! This save slot is reserved for debugging purposes!`);
                     return false;
