@@ -817,6 +817,7 @@ function main(){
                     itBuilder.inputs.push({"op": ITOP.BUTTON, "button": "A", "time": timeCalc * timeCoeff});
                     continue;
                 case "DJ":
+                    dirCalc(1,1);
                     timeCalc = bLastIsTime ? timeCalc : DEFAULT_BUTTON;
                     itBuilder.inputs.push({"op": ITOP.BUTTON, "button": "A", "time": DEFAULT_BUTTON});
                     itBuilder.inputs.push({"op": ITOP.IWAIT, "time": 0.25});
