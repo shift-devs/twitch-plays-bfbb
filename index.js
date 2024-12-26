@@ -828,7 +828,6 @@ function main(){
                         itBuilder.inputs.push({"op": ITOP.IWAIT, "time": 0.25});
                         itBuilder.inputs.push({"op": ITOP.BUTTON, "button": "A", "time": DEFAULT_BUTTON});
                     }
-                    mSplit.splice(0,1); 
                     continue;
             }
             dirCalc(0,1);
