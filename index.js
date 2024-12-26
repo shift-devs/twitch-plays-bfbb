@@ -816,6 +816,12 @@ function main(){
                     timeCalc = bLastIsTime ? timeCalc : 2;
                     itBuilder.inputs.push({"op": ITOP.BUTTON, "button": "A", "time": timeCalc * timeCoeff});
                     continue;
+                case "DJ":
+                    timeCalc = bLastIsTime ? timeCalc : DEFAULT_BUTTON;
+                    itBuilder.inputs.push({"op": ITOP.BUTTON, "button": "A", "time": DEFAULT_BUTTON});
+                    itBuilder.inputs.push({"op": ITOP.IWAIT, "time": 0.25});
+                    itBuilder.inputs.push({"op": ITOP.BUTTON, "button": "A", "time": DEFAULT_BUTTON});
+                    continue;
                 case "SHIT":
                 case "DIAPER":
                 case "DIAPEY":
