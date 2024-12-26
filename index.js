@@ -841,7 +841,7 @@ function main(){
         }
         // --- out of loop
         if (iSplit.length > MAX_INPUTS) {
-            tpSay(client, `@${tags.username} That's ${MAX_INPUTS+1}+ inputs in one message! Too many!`);
+            tpSay(client, `@${tags.username} That's >${MAX_INPUTS} inputs in one message! Too many!`);
             return;
         }
         let finalWaits = 0;
@@ -857,7 +857,7 @@ function main(){
             itBuilder.inputs[i].time = inputTime;
         }
         if (finalWaits > MAX_WAIT){
-            tpSay(client, `@${tags.username} You wait for ${MAX_WAIT+1}+ seconds in total! Too many!`);
+            tpSay(client, `@${tags.username} You wait for >${MAX_WAIT} seconds in total! Too many!`);
             return;
         }
         if (bTroll)
