@@ -70,6 +70,7 @@ const DIRECTIONS = {
     DOWN: [0,-1],
     BACK: [0,-1],
     BACKWARD: [0,-1],
+    BACKWARDS: [0,-1],
     LEFT: [-1,0],
     RIGHT: [1,0]
 }
