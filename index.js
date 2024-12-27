@@ -32,9 +32,9 @@ const DEFAULT_WAIT = 1;
 const DEFAULT_BUTTON = 0.4;
 const DEFAULT_MOVE = 1;
 const DEFAULT_LOOK = 0.5;
-const MAX_INPUTS = 40;
+const MAX_INPUTS = 50;
 const MAX_INPUT_TIME = 10;
-const MAX_WAIT = 15;
+const MAX_WAIT = 20;
 const SNEAK_MOD = 0.33;
 
 const FLUSHPERM_INTERVAL = 10000;
