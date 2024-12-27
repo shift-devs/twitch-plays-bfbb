@@ -2,11 +2,11 @@ if (process.platform != 'linux'){
     console.error("This program can only be run under linux!");
     process.exit();
 }
-import { promises } from "fs";
 import * as tmi from "tmi.js";
 import * as chi from "child_process";
 import { default as robot } from "@jitsi/robotjs";
 import { createRequire } from "node:module";
+import * as fs from "node:fs";
 const nativeModule = createRequire(import.meta.url)("./nodephin.node"); // custom bs
 let setInputs = nativeModule.setInputs;
 
@@ -116,15 +116,15 @@ const usernameRegex = RegExp("^(#)?[a-zA-Z0-9][\\w]{2,24}$");
 
 const DEVS = ["aaronrules5"]
 
-const settingsObj = JSON.parse(await promises.readFile("./settings.json", "UTF-8"));
+const settingsObj = JSON.parse(fs.readFileSync("./settings.json", "UTF-8"));
 const CHANNELNAME = settingsObj["channel-name"];
 
-const loginObj = JSON.parse(await promises.readFile("./login.json", "UTF-8"));
+const loginObj = JSON.parse(fs.readFileSync("./login.json", "UTF-8"));
 const BOTNAME = loginObj["bot-name"];
 const TOKEN = loginObj["access-token"];
 const ANON = (!BOTNAME || !TOKEN);
 
-let permStr = await promises.readFile("./perm.json", "UTF-8")
+let permStr = fs.readFileSync("./perm.json", "UTF-8");
 let permObj = {};
 
 try {
@@ -161,7 +161,6 @@ function doInputUnuse(key){
     inputUnuseTimeouts[key] = 0;
     finalSetInputs();
 }
-
 
 async function sleep(ms){
     return new Promise((res)=>{
@@ -201,12 +200,17 @@ function tryUnblock(){
     });
 }
 
-async function flushPerm(){
-    await promises.writeFile(
+function flushPerm(){
+    if (inputThreads.length != 0){
+        setTimeout(flushPerm,1000); // Reschedule File IO
+        return;
+    }
+    fs.writeFileSync(
         "./perm.json",
         JSON.stringify(permObj, null, 4),
         "UTF-8"
     );
+    setTimeout(flushPerm, FLUSHPERM_INTERVAL);
 }
 
 function setMode(client, whom, modeValue){
@@ -237,7 +241,7 @@ async function resetDolphin(){
 
 function wakeThread(thread){
     thread.sleeping = 0;
-    setTimeout(execInputThreads,0);
+    execInputThreads();
 }
 
 function removeAllThreads(){
@@ -348,7 +352,7 @@ function main(){
         console.warn("[Anonymous Mode] - No chat messages will be sent from the bot");
     }
 
-    setInterval(flushPerm, FLUSHPERM_INTERVAL);
+    setTimeout(flushPerm, FLUSHPERM_INTERVAL);
     setInterval(tryUnblock, TRYUNBLOCK_INTERVAL);
 
     client.connect();
@@ -595,7 +599,6 @@ function main(){
                     if (!opWall())
                         return;
                     tpSay(client, `@${tags.username} suck my movie`);
-                    //tpSay(client, `@${tags.username} ${JSON.stringify(tickableInputs)}`);
                     return;
                 case "MODE":
                     if (!modWall())
@@ -864,7 +867,7 @@ function main(){
         if (bTroll)
             tpSay(client,"Trolling");
         inputThreads.splice(0, 0, itBuilder);
-        setTimeout(execInputThreads,0);
+        execInputThreads();
     });
 }
 
