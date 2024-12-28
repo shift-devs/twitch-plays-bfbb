@@ -800,6 +800,7 @@ function main(){
                     itBuilder.inputs.push({"op": ITOP.BUTTON, "button": "L", "time": DEFAULT_BUTTON});
                     continue;
                 case "ATTACK":
+                case "SPIN":
                     itBuilder.inputs.push({"op": ITOP.BUTTON, "button": "B", "time": DEFAULT_BUTTON});
                     continue;
                 case "BASH":
