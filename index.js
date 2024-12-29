@@ -37,7 +37,7 @@ const MAX_INPUT_TIME = 10;
 const MAX_WAIT = 120;
 const SNEAK_MOD = 0.33;
 
-const FLUSHPERM_INTERVAL = 10000;
+const FLUSHPERM_INTERVAL = 30000;
 const TRYUNBLOCK_INTERVAL = 1000;
 
 const actionModifiers = {
