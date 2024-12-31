@@ -32,6 +32,7 @@ const DEFAULT_WAIT = 1;
 const DEFAULT_BUTTON = 0.4;
 const DEFAULT_MOVE = 1;
 const DEFAULT_LOOK = 0.5;
+const CONST_VERT_LOOK = 5;
 const MAX_INPUTS = 99;
 const MAX_INPUT_TIME = 10;
 const MAX_WAIT = 120;
@@ -750,11 +751,18 @@ function main(){
                     }
                 }
                 const finalDirection = Math.atan2(vertTally,horzTally);
-                const stickX = Math.cos(finalDirection);
-                const stickY = Math.sin(finalDirection);
+                let stickX = Math.cos(finalDirection);
+                let stickY = Math.sin(finalDirection);
+                stickX = stickY ? 0 : stickX; // One at a time! 0.22 -> 0.4
+                const vertMin = 0.22;
+                const vertMax = 0.4;
+                stickY = stickY * timeCalc * timeCoeff;
+                stickY = Math.min(stickY,1);
+                stickY = Math.max(stickY,-1);
+                stickY = stickY * (vertMax - vertMin) + (Math.sign(stickY) * (vertMax-(vertMax - vertMin)));
                 if (vertTally == 0 && horzTally == 0)
                     continue;
-                itBuilder.inputs.push({"op": ITOP.LOOK, "stickX": stickX, "stickY": stickY, "time": timeCalc * timeCoeff});
+                itBuilder.inputs.push({"op": ITOP.LOOK, "stickX": stickX, "stickY": stickY, "time": vertTally ? CONST_VERT_LOOK : timeCalc * timeCoeff});
                 continue;
             }
 
