@@ -753,7 +753,7 @@ function main(){
                 const finalDirection = Math.atan2(vertTally,horzTally);
                 let stickX = Math.cos(finalDirection);
                 let stickY = Math.sin(finalDirection);
-                stickX = stickY ? 0 : stickX; // One at a time! 0.22 -> 0.4
+                stickX = vertTally == 0 ? stickX : 0; // One at a time! 0.22 -> 0.4
                 const vertMin = 0.22;
                 const vertMax = 0.4;
                 stickY = stickY * timeCalc * timeCoeff;
