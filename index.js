@@ -253,6 +253,7 @@ function removeAllThreads(){
                 if (delThread.sleeping != 0){
                     clearTimeout(curThread.sleeping);
                 }
+                delThread.inputs = [];
                 inputThreads.splice(j,1);
             }
         }
@@ -280,6 +281,7 @@ function execInputThreads(){
                                 if (delThread.sleeping != 0){
                                     clearTimeout(curThread.sleeping);
                                 }
+                                delThread.inputs = [];
                                 inputThreads.splice(j,1); // remove dead thread
                             }
                         }
@@ -379,7 +381,7 @@ function main(){
         cdDone = false;
         setTimeout(doCooldownDone, globalCooldown);
 
-        let mSplit = message.toUpperCase().split(" ");
+        let mSplit = message.trim().toUpperCase().replaceAll(/[^ -~]/g,"").split(" ");
 
         let badPermsMsg=()=>{
             tpSay(client,`@${tags.username} You don't have permission to do that!`);
@@ -705,7 +707,7 @@ function main(){
 
         for (let i = 0; i < iSplit.length; i++){
             const curInput = iSplit[i];
-            mSplit = curInput.trim().toUpperCase().split(" ");
+            mSplit = curInput.trim().toUpperCase().replaceAll(/[^ -~]/g,"").split(" ");
             let timeCoeff = 1;
             let bDouble = 0;
             let timeCalc = parseFloat(mSplit[mSplit.length-1]);
