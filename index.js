@@ -262,7 +262,7 @@ function clearAllThreads(){
 function execInputThreads(){
     for (let i = 0; i < inputThreads.length; i++){
         const curThread = inputThreads[i];
-        while (curThread.sleeping == 0 && curThread.inputs && curThread.inputs.length != 0){
+        while (curThread.sleeping == 0 && curThread.inputs.length != 0){
             let curInput = curThread.inputs[0];
             switch (curInput.op){
                 case ITOP.IWAIT:
@@ -326,9 +326,9 @@ function execInputThreads(){
         }
     }
     // Actually remove empty threads
-    for (let i = inputThreads.length; i >= 0; i--){
+    for (let i = inputThreads.length-1; i >= 0; i--){
         const curThread = inputThreads[i];
-        if (!curThread.inputs || curThread.inputs.length == 0){
+        if (curThread.inputs.length == 0){
             if (curThread.sleeping != 0){
                 clearTimeout(curThread.sleeping);
             }
