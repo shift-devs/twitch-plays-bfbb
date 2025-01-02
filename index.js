@@ -228,7 +228,7 @@ function setMode(client, whom, modeValue){
 async function resetDolphin(){
     actualMode = MODE.DISABLED;
     actualModeLock = true;
-    removeAllThreads();
+    clearAllThreads();
     chi.spawnSync("pkill",["-sigterm","dolphin-emu"]);
     await sleep(1000);
     chi.spawn("dolphin-emu",["-e",settingsObj["dol"]],{detached: true});
@@ -245,16 +245,12 @@ function wakeThread(thread){
     execInputThreads();
 }
 
-function removeAllThreads(){
+function clearAllThreads(){
     for (let j = 0; j < inputThreads.length; j++){
         let delThread = inputThreads[j];
         if (true){
             if (delThread.inputs.length != 0){
-                if (delThread.sleeping != 0){
-                    clearTimeout(curThread.sleeping);
-                }
                 delThread.inputs = [];
-                inputThreads.splice(j,1);
             }
         }
     }
@@ -278,11 +274,7 @@ function execInputThreads(){
                         let delThread = inputThreads[j];
                         if (delThread != curThread){
                             if (delThread.inputs.length != 0){
-                                if (delThread.sleeping != 0){
-                                    clearTimeout(curThread.sleeping);
-                                }
                                 delThread.inputs = [];
-                                inputThreads.splice(j,1); // remove dead thread
                             }
                         }
                     }
@@ -333,13 +325,14 @@ function execInputThreads(){
             curThread.inputs.splice(0,1); // prepare for the next input
         }
     }
-    for (let i = 0; i < inputThreads.length; i++){
+    // Actually remove empty threads
+    for (let i = inputThreads.length; i >= 0; i--){
         const curThread = inputThreads[i];
         if (curThread.inputs.length == 0){
             if (curThread.sleeping != 0){
                 clearTimeout(curThread.sleeping);
             }
-            inputThreads.splice(i,1); // remove dead thread
+            inputThreads.splice(i,1);
         }
     }
 }
@@ -463,7 +456,7 @@ function main(){
                     // clear any inputs in buffer
                     modeMsg(MODE.DISABLED);
                     setMode(client, tags.username, MODE.DISABLED);
-                    removeAllThreads();
+                    clearAllThreads();
                     //chi.spawnSync("pkill",["-sigkill","dolphin-emu"]);
                     return;
                 case "FREEZE":
@@ -474,7 +467,7 @@ function main(){
                         return;
                     }
                     modeMsg(MODE.FROZEN);
-                    removeAllThreads();
+                    clearAllThreads();
                     if (setMode(client, tags.username, MODE.FROZEN)){
                         robot.keyTap("f10");
                     };
