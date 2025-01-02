@@ -484,7 +484,8 @@ function main(){
                     return;
                 case "MODS":
                 case "MODSONLY":
-                    resumeGame(MODE.MODS)
+                    resumeGame(MODE.MODS);
+                    return;
                 default:
                     tpSay(client,`@${tags.username} The current mode is set to ${MODETEXT[actualMode]}!`);
                     return;
