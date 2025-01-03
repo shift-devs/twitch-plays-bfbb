@@ -514,7 +514,7 @@ function main(){
                         tpSay(client,`@${tags.username} No message?`);
                         return;
                     }
-                    permObj["help"] = mSplit[2];
+                    permObj["help"] = message.trim().split(" ").slice(2).join(" ");
                     tpSay(client,`@${tags.username} Set message!`);
                     return;
                 case "ANTISOFTLOCK":
