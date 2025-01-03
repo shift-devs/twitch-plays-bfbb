@@ -136,6 +136,7 @@ catch {
     permObj = {};
     permObj["ops"] = {};
     permObj["blocks"] = {};
+    permObj["help"] = "Hai";
 }
 
 function finalSetInputs(){
@@ -503,6 +504,19 @@ function main(){
 
         if (mSplit[0] == "TP"){
             switch(mSplit[1]){
+                case "HELP":
+                    tpSay(client,`@${tags.username} ${permObj["help"]}`);
+                    return;
+                case "SETHELP":
+                    if (!modWall())
+                        return;
+                    if (!mSplit[2] || mSplit[2] == ""){
+                        tpSay(client,`@${tags.username} No message?`);
+                        return;
+                    }
+                    permObj["help"] = mSplit[2];
+                    tpSay(client,`@${tags.username} Set message!`);
+                    return;
                 case "ANTISOFTLOCK":
                 case "SOFTLOCK":
                 case "DIE":
