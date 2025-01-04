@@ -368,6 +368,7 @@ function main(){
         let iSplit = message.split(",");
         let itBuilder = {"user": tags, "sleeping": 0, "inputs": []}
         let bTroll = 0;
+        let bStartBadMsg = 0;
 
         if (cdDone == false){
             return;
@@ -492,7 +493,7 @@ function main(){
                     return;
             }
         }
-
+        /*
         switch(mSplit[0]){
             case "PAUSE":
             case "START":
@@ -501,7 +502,7 @@ function main(){
                 doInputUse("START",100);
                 return;
         }
-
+        */
         if (mSplit[0] == "TP"){
             switch(mSplit[1]){
                 case "HELP":
@@ -524,12 +525,14 @@ function main(){
                         return;
                     setInputs(0x3C1C0B,Buffer.from([0x00,0x00]));
                     return;
+                    /*
                 case "PAUSE":
                 case "START":
                     if (!opWall() || !checkModeBeforeSave())
                         return;
                     doInputUse("START",100);
                     return;
+                    */
                 case "SAVE":
                     if (mSplit[2]){
                         switch (mSplit[2]){
@@ -798,6 +801,15 @@ function main(){
             }
 
             switch (mSplit[0]){
+                case "START":
+                case "PAUSE":
+                    if (!isBroadcaster && !isMod && !isOp){
+                        itBuilder.inputs.push({"op": ITOP.NOP});
+                        bStartBadMsg = 1;
+                        continue;
+                    }
+                    itBuilder.inputs.push({"op": ITOP.BUTTON, "button": "START", "time": DEFAULT_BUTTON});
+                    continue;
                 case "CRUISEBOOST":
                 case "CB":
                     dirCalc(1,1);
@@ -885,6 +897,8 @@ function main(){
         }
         if (bTroll)
             tpSay(client,"Trolling");
+        if (bStartBadMsg)
+            tpSay(client,`@${tags.username} Your message had start/pause! You don't have permission! That input will be skipped!`);
         inputThreads.splice(0, 0, itBuilder);
         execInputThreads();
     });
