@@ -56,12 +56,13 @@ const ITOP = {
     NOP: 0,
     WAIT: 1,
     HALT: 2,
-    BUTTON: 3,
-    MOVE: 4,
-    LOOK: 5,
-    SETSNEAK: 6,
-    OTHER: 7,
-    IWAIT: 8
+    IWAIT: 3,
+    BUTTON: 4,
+    MOVE: 5,
+    LOOK: 6,
+    SETSNEAK: 7,
+    OTHER: 8,
+    ROBOT: 9
 }
 
 const DIRECTIONS = {
@@ -318,7 +319,12 @@ function execInputThreads(){
                     sneaking = curInput.sneak;
                     finalSetInputs();
                     break;
+                case ITOP.OTHER:
                 case ITOP.NOP:
+                    break;
+                case ITOP.ROBOT:
+                    robot.keyTap(curInput.d);
+                    curThread.sleeping = setTimeout(wakeThread.bind(null,curThread),1000);
                     break;
                 default:
                     break;
@@ -368,7 +374,12 @@ function main(){
         let iSplit = message.split(",");
         let itBuilder = {"user": tags, "sleeping": 0, "inputs": []}
         let bTroll = 0;
-        let bStartBadMsg = 0;
+        let bNoPermStart = 0;
+        let bNoPermLoad = 0;
+        let bLoadBadTime = 0;
+        let bNoInitialLoad = 0;
+        let bGenericLoadFail = 0;
+        let bNotDev = 0;
 
         if (cdDone == false){
             return;
@@ -555,6 +566,7 @@ function main(){
                         return;
                     robot.keyTap("f1");
                     return;
+                    /*
                 case "LOAD":
                     if (!opWall() || !checkModeBeforeSave())
                         return;
@@ -579,36 +591,43 @@ function main(){
                         return;
                     robot.keyTap("f2");
                     return;
+                    */
                 case "SAVE2":
                     if (!opWall() || !checkModeBeforeSave())
                         return;
                     robot.keyTap("f3");
                     return;
+                    /*
                 case "LOAD2":
                     if (!opWall() || !checkModeBeforeSave())
                         return;
                     robot.keyTap("f4");
                     return;
+                    */
                 case "SAVE3":
                     if (!opWall() || !checkModeBeforeSave())
                         return;
                     robot.keyTap("f5");
                     return;
+                    /*
                 case "LOAD3":
                     if (!opWall() || !checkModeBeforeSave())
                         return;
                     robot.keyTap("f6");
                     return;
+                    */
                 case "SAVEDEV":
                     if (!devWall() || !checkModeBeforeSave())
                         return;
                     robot.keyTap("f7");
                     return;
+                    /*
                 case "LOADDEV":
                     if (!devWall() || !checkModeBeforeSave())
                         return;
                     robot.keyTap("f8");
                     return;
+                    */
                 case "DUMPTICKABLE":
                     if (!opWall())
                         return;
@@ -800,12 +819,71 @@ function main(){
                 }
             }
 
+            let hackySubTP=()=>{
+                if (!isBroadcaster && !isMod && !isOp){
+                    itBuilder.inputs.push({"op": ITOP.NOP});
+                    bNoPermLoad = 1;
+                    return;
+                }
+                if (actualMode == MODE.DISABLED || actualMode == MODE.FROZEN){
+                    itBuilder.inputs.push({"op": ITOP.NOP});
+                    bLoadBadTime = 1;
+                    return;
+                }
+                if (i != 0){
+                    itBuilder.inputs.push({"op": ITOP.NOP});
+                    bNoInitialLoad = 1;
+                    return;
+                }
+                switch (mSplit[1]){
+                    case "LOAD":
+                        if (mSplit[2]){
+                            switch (mSplit[2]){
+                                case "1":
+                                    itBuilder.inputs.push({"op": ITOP.ROBOT, "d": "f2"});
+                                    return;
+                                case "2":
+                                    itBuilder.inputs.push({"op": ITOP.ROBOT, "d": "f4"});
+                                    return;
+                                case "3":
+                                    itBuilder.inputs.push({"op": ITOP.ROBOT, "d": "f6"});
+                                    return;
+                                default:
+                                    itBuilder.inputs.push({"op": ITOP.NOP});
+                                    bGenericLoadFail = 1;
+                                    return;
+                            }
+                        }
+                        break;
+                    case "LOAD1":
+                        itBuilder.inputs.push({"op": ITOP.ROBOT, "d": "f2"});
+                        return;
+                    case "LOAD2":
+                        itBuilder.inputs.push({"op": ITOP.ROBOT, "d": "f4"});
+                        return;
+                    case "LOAD3":
+                        itBuilder.inputs.push({"op": ITOP.ROBOT, "d": "f6"});
+                        return;
+                    case "LOADDEV":
+                        if (!isDev){
+                            itBuilder.inputs.push({"op": ITOP.NOP});
+                            bNotDev = 1;
+                            return;
+                        }
+                        itBuilder.inputs.push({"op": ITOP.ROBOT, "d": "f8"});
+                        return;
+                }
+            }
+
             switch (mSplit[0]){
+                case "TP":
+                    hackySubTP();
+                    continue;
                 case "START":
                 case "PAUSE":
                     if (!isBroadcaster && !isMod && !isOp){
                         itBuilder.inputs.push({"op": ITOP.NOP});
-                        bStartBadMsg = 1;
+                        bNoPermStart = 1;
                         continue;
                     }
                     itBuilder.inputs.push({"op": ITOP.BUTTON, "button": "START", "time": DEFAULT_BUTTON});
@@ -897,8 +975,18 @@ function main(){
         }
         if (bTroll)
             tpSay(client,"Trolling");
-        if (bStartBadMsg)
+        if (bNoPermStart)
             tpSay(client,`@${tags.username} Your message had start/pause! You don't have permission! That input will be skipped!`);
+        if (bGenericLoadFail)
+            tpSay(client, `@${tags.username} Unable to load! That input will be skipped! Please, try again!`);
+        if (bNoPermLoad)
+            tpSay(client,`@${tags.username} Your message tried to load! You don't have permission! That input will be skipped!`);
+        if (bNotDev)
+            tpSay(client,`@${tags.username} Your message tried to load the dev state! You don't have permission! That input will be skipped!`);
+        if (bNoInitialLoad)
+            tpSay(client, `@${tags.username} You can only load if it's the first input! That input will be skipped!`);
+        if (bLoadBadTime)
+            tpSay(client, `@${tags.username} You tried to load at a bad time! That input will be skipped!`);
         inputThreads.splice(0, 0, itBuilder);
         execInputThreads();
     });
