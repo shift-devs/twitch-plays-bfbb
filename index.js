@@ -853,8 +853,7 @@ function main(){
                                     bGenericLoadFail = 1;
                                     return;
                             }
-                        }
-                        break;
+                        } // no break / return here on purpose
                     case "LOAD1":
                         itBuilder.inputs.push({"op": ITOP.ROBOT, "d": "f2"});
                         return;
