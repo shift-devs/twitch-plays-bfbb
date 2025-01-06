@@ -377,7 +377,6 @@ function main(){
         let bNoPermStart = 0;
         let bNoPermLoad = 0;
         let bLoadBadTime = 0;
-        let bNoInitialLoad = 0;
         let bGenericLoadFail = 0;
         let bNotDev = 0;
 
@@ -830,11 +829,6 @@ function main(){
                     bLoadBadTime = 1;
                     return;
                 }
-                if (i != 0){
-                    itBuilder.inputs.push({"op": ITOP.NOP});
-                    bNoInitialLoad = 1;
-                    return;
-                }
                 switch (mSplit[1]){
                     case "LOAD":
                         if (mSplit[2]){
@@ -982,8 +976,6 @@ function main(){
             tpSay(client,`@${tags.username} Your message tried to load! You don't have permission! That input will be skipped!`);
         if (bNotDev)
             tpSay(client,`@${tags.username} Your message tried to load the dev state! You don't have permission! That input will be skipped!`);
-        if (bNoInitialLoad)
-            tpSay(client, `@${tags.username} You can only load if it's the first input! That input will be skipped!`);
         if (bLoadBadTime)
             tpSay(client, `@${tags.username} You tried to load at a bad time! That input will be skipped!`);
         inputThreads.splice(0, 0, itBuilder);
