@@ -817,29 +817,38 @@ function main(){
                     itBuilder.inputs.push({"op": ITOP.MOVE, "stickX": stickX, "stickY": stickY, "time": timeCalc * timeCoeff});
                 }
             }
-
-            let hackySubTP=()=>{
+            let loadWall=()=>{
                 if (!isBroadcaster && !isMod && !isOp){
                     itBuilder.inputs.push({"op": ITOP.NOP});
                     bNoPermLoad = 1;
-                    return;
+                    return false;
                 }
                 if (actualMode == MODE.DISABLED || actualMode == MODE.FROZEN){
                     itBuilder.inputs.push({"op": ITOP.NOP});
                     bLoadBadTime = 1;
-                    return;
+                    return false;
                 }
+                return true;
+            }
+
+            let hackySubTP=()=>{
                 switch (mSplit[1]){
                     case "LOAD":
                         if (mSplit[2]){
                             switch (mSplit[2]){
                                 case "1":
+                                    if (!loadWall)
+                                        return;
                                     itBuilder.inputs.push({"op": ITOP.ROBOT, "d": "f2"});
                                     return;
                                 case "2":
+                                    if (!loadWall)
+                                        return;
                                     itBuilder.inputs.push({"op": ITOP.ROBOT, "d": "f4"});
                                     return;
                                 case "3":
+                                    if (!loadWall)
+                                        return;
                                     itBuilder.inputs.push({"op": ITOP.ROBOT, "d": "f6"});
                                     return;
                                 default:
@@ -849,15 +858,23 @@ function main(){
                             }
                         } // no break / return here on purpose
                     case "LOAD1":
+                        if (!loadWall)
+                            return;
                         itBuilder.inputs.push({"op": ITOP.ROBOT, "d": "f2"});
                         return;
                     case "LOAD2":
+                        if (!loadWall)
+                            return;
                         itBuilder.inputs.push({"op": ITOP.ROBOT, "d": "f4"});
                         return;
                     case "LOAD3":
+                        if (!loadWall)
+                            return;
                         itBuilder.inputs.push({"op": ITOP.ROBOT, "d": "f6"});
                         return;
                     case "LOADDEV":
+                        if (!loadWall)
+                            return;
                         if (!isDev){
                             itBuilder.inputs.push({"op": ITOP.NOP});
                             bNotDev = 1;
