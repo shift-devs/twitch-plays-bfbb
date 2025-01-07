@@ -837,17 +837,17 @@ function main(){
                         if (mSplit[2]){
                             switch (mSplit[2]){
                                 case "1":
-                                    if (!loadWall)
+                                    if (!loadWall())
                                         return;
                                     itBuilder.inputs.push({"op": ITOP.ROBOT, "d": "f2"});
                                     return;
                                 case "2":
-                                    if (!loadWall)
+                                    if (!loadWall())
                                         return;
                                     itBuilder.inputs.push({"op": ITOP.ROBOT, "d": "f4"});
                                     return;
                                 case "3":
-                                    if (!loadWall)
+                                    if (!loadWall())
                                         return;
                                     itBuilder.inputs.push({"op": ITOP.ROBOT, "d": "f6"});
                                     return;
@@ -858,22 +858,22 @@ function main(){
                             }
                         } // no break / return here on purpose
                     case "LOAD1":
-                        if (!loadWall)
+                        if (!loadWall())
                             return;
                         itBuilder.inputs.push({"op": ITOP.ROBOT, "d": "f2"});
                         return;
                     case "LOAD2":
-                        if (!loadWall)
+                        if (!loadWall())
                             return;
                         itBuilder.inputs.push({"op": ITOP.ROBOT, "d": "f4"});
                         return;
                     case "LOAD3":
-                        if (!loadWall)
+                        if (!loadWall())
                             return;
                         itBuilder.inputs.push({"op": ITOP.ROBOT, "d": "f6"});
                         return;
                     case "LOADDEV":
-                        if (!loadWall)
+                        if (!loadWall())
                             return;
                         if (!isDev){
                             itBuilder.inputs.push({"op": ITOP.NOP});
