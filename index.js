@@ -898,10 +898,6 @@ function main(){
                     }
                     itBuilder.inputs.push({"op": ITOP.BUTTON, "button": "START", "time": DEFAULT_BUTTON});
                     continue;
-                case "URTEST":
-                    timeCalc = bLastIsTime ? timeCalc : DEFAULT_MOVE * 1;
-                    itBuilder.inputs.push({"op": ITOP.MOVE, "stickX": 1, "stickY": 1, "time": timeCalc * timeCoeff})
-                    continue;
                 case "CRUISEBOOST":
                 case "CB":
                     dirCalc(1,1);
@@ -953,6 +949,7 @@ function main(){
                 case "SHIT":
                 case "DIAPER":
                 case "DIAPEY":
+                case "EDGE":
                     bTroll = 1;
                 case "JUMP":
                     dirCalc(1,1);
