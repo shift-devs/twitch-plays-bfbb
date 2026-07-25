@@ -116,7 +116,7 @@ let sneaking = 0;
 let inputThreads = []
 const usernameRegex = RegExp("^(#)?[a-zA-Z0-9][\\w]{2,24}$");
 
-const DEVS = ["aaronrules5"]
+const DEVS = ["aaronrules5", "sleepyhead08", "tetraxz"]
 
 const settingsObj = JSON.parse(fs.readFileSync("./settings.json", "UTF-8"));
 const CHANNELNAME = settingsObj["channel-name"];
