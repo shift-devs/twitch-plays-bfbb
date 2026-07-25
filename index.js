@@ -397,7 +397,7 @@ function main(){
         }
 
         let opWall=()=>{
-            if (!isBroadcaster && !isMod && !isOp){
+            if (!isBroadcaster && !isDev && !isMod && !isOp){
                 badPermsMsg();
                 return false;
             }
@@ -405,7 +405,7 @@ function main(){
         }
 
         let modWall=()=>{
-            if (!isBroadcaster && !isMod){
+            if (!isBroadcaster && !isDev && !isMod){
                 badPermsMsg();
                 return false;
             }
