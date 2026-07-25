@@ -544,6 +544,8 @@ function main(){
                     return;
                     */
                 case "SAVE":
+                    if (!opWall() || !checkModeBeforeSave())
+                        return;
                     if (mSplit[2]){
                         switch (mSplit[2]){
                             case "1":
@@ -559,7 +561,10 @@ function main(){
                                 tpSay(client,`@${tags.username} Try again, please!`);
                                 return;
                         }
-                    } // no break / return here on purpose
+                    } else {
+                        robot.keyTap("f1");
+                    }
+                    return;
                 case "SAVE1":
                     if (!opWall() || !checkModeBeforeSave())
                         return;
@@ -722,13 +727,13 @@ function main(){
             case MODE.FROZEN:
                 return;
             case MODE.OPS:
-                if (!isBroadcaster && !isMod && !isOp)
+                if (!isBroadcaster && !isDev && !isMod && !isOp)
                     return;
             case MODE.MODS:
-                if (!isBroadcaster && !isMod)
+                if (!isBroadcaster && !isDev && !isMod)
                     return;
             case MODE.DEMOCRACY:
-                if (!isBroadcaster && ciIncludes(permObj["blocks"].map(x=>x.user),tags.username))
+                if (!isBroadcaster && !isDev && ciIncludes(permObj["blocks"].map(x=>x.user),tags.username))
                     return; // Input blocked
             case MODE.ANARCHY:
                 break;
@@ -818,7 +823,7 @@ function main(){
                 }
             }
             let loadWall=()=>{
-                if (!isBroadcaster && !isMod && !isOp){
+                if (!isBroadcaster && !isDev && !isMod && !isOp){
                     itBuilder.inputs.push({"op": ITOP.NOP});
                     bNoPermLoad = 1;
                     return false;
@@ -891,7 +896,7 @@ function main(){
                     continue;
                 case "START":
                 case "PAUSE":
-                    if (!isBroadcaster && !isMod && !isOp){
+                    if (!isBroadcaster && !isDev && !isMod && !isOp){
                         itBuilder.inputs.push({"op": ITOP.NOP});
                         bNoPermStart = 1;
                         continue;
